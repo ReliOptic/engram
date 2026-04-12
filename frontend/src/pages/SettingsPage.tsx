@@ -4,14 +4,16 @@ import { ModelSettings } from '../components/settings/ModelSettings';
 import { APIKeySettings } from '../components/settings/APIKeySettings';
 import { VectorDBSettings } from '../components/settings/VectorDBSettings';
 import { DropdownSettings } from '../components/settings/DropdownSettings';
+import { SyncSettings } from '../components/settings/SyncSettings';
 
-type SettingsTab = 'models' | 'apikeys' | 'vectordb' | 'dropdowns';
+type SettingsTab = 'models' | 'apikeys' | 'vectordb' | 'dropdowns' | 'sync';
 
 const TABS: { id: SettingsTab; label: string }[] = [
   { id: 'models', label: 'Models' },
   { id: 'apikeys', label: 'API Keys' },
   { id: 'vectordb', label: 'VectorDB' },
   { id: 'dropdowns', label: 'Dropdowns' },
+  { id: 'sync', label: 'Sync' },
 ];
 
 export function SettingsPage() {
@@ -50,6 +52,7 @@ export function SettingsPage() {
           {activeTab === 'apikeys' && <APIKeySettings />}
           {activeTab === 'vectordb' && <VectorDBSettings />}
           {activeTab === 'dropdowns' && <DropdownSettings />}
+          {activeTab === 'sync' && <SyncSettings />}
         </div>
       </div>
     </div>

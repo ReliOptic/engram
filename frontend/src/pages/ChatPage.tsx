@@ -27,6 +27,29 @@ export function ChatPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
 
+  // Sync status for header badge
+  const [syncStatus, setSyncStatus] = useState<'disabled' | 'synced' | 'pending' | 'offline'>('disabled');
+  const [syncPending, setSyncPending] = useState(0);
+  useEffect(() => {
+    fetch('/api/sync/status')
+      .then(r => r.json())
+      .then(data => {
+        setSyncStatus(data.status || 'disabled');
+        setSyncPending(data.pending_events || 0);
+      })
+      .catch(() => {});
+    const interval = setInterval(() => {
+      fetch('/api/sync/status')
+        .then(r => r.json())
+        .then(data => {
+          setSyncStatus(data.status || 'disabled');
+          setSyncPending(data.pending_events || 0);
+        })
+        .catch(() => {});
+    }, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
   const {
     sessions,
     fetchSessions,
@@ -187,7 +210,7 @@ export function ChatPage() {
 
   return (
     <ResizableLayout
-      header={<Header wsStatus={wsStatus} />}
+      header={<Header wsStatus={wsStatus} syncStatus={syncStatus} syncPending={syncPending} />}
       leftTop={<AgentPanel agentStatuses={agentStatuses} />}
       leftBottom={
         <HistorySidebar

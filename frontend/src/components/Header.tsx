@@ -1,12 +1,15 @@
 import { Link } from 'react-router-dom';
 
 type ConnectionStatus = 'connecting' | 'connected' | 'disconnected';
+type SyncStatus = 'disabled' | 'synced' | 'pending' | 'offline';
 
 interface HeaderProps {
   wsStatus: ConnectionStatus;
+  syncStatus?: SyncStatus;
+  syncPending?: number;
 }
 
-export function Header({ wsStatus }: HeaderProps) {
+export function Header({ wsStatus, syncStatus, syncPending }: HeaderProps) {
   const statusColor =
     wsStatus === 'connected'
       ? 'var(--color-success)'
@@ -27,6 +30,28 @@ export function Header({ wsStatus }: HeaderProps) {
           title={`WebSocket: ${wsStatus}`}
         />
         <span style={styles.statusText}>{wsStatus}</span>
+        {syncStatus && syncStatus !== 'disabled' && (
+          <span
+            style={{
+              ...styles.syncBadge,
+              background:
+                syncStatus === 'synced' ? 'rgba(76,175,80,0.2)' :
+                syncStatus === 'pending' ? 'rgba(255,152,0,0.2)' :
+                'rgba(244,67,54,0.2)',
+              color:
+                syncStatus === 'synced' ? '#4CAF50' :
+                syncStatus === 'pending' ? '#FF9800' :
+                '#F44336',
+            }}
+            title={
+              syncStatus === 'synced' ? 'Sync: up to date' :
+              syncStatus === 'pending' ? `Sync: ${syncPending || 0} pending` :
+              'Sync: server offline'
+            }
+          >
+            {syncStatus === 'synced' ? '↑↓' : syncStatus === 'pending' ? `↑${syncPending || ''}` : '⊘'}
+          </span>
+        )}
         <Link to="/settings" style={styles.gearLink} title="Settings (Ctrl+,)">
           <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
             <path
@@ -89,6 +114,13 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: '12px',
     opacity: 0.8,
     textTransform: 'capitalize' as const,
+  },
+  syncBadge: {
+    fontSize: '11px',
+    fontWeight: 600,
+    padding: '2px 8px',
+    borderRadius: '10px',
+    letterSpacing: '0.5px',
   },
   gearLink: {
     display: 'flex',

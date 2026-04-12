@@ -92,6 +92,25 @@ def create_app() -> FastAPI:
     async def health():
         return {"status": "ok", "version": VERSION}
 
+    @app.get("/api/sync/status")
+    async def sync_status():
+        """Return current sync status for frontend header badge."""
+        from backend.config import SYNC_SERVER_URL, SYNC_DEVICE_NAME
+        if not SYNC_SERVER_URL:
+            return {"enabled": False, "status": "disabled", "pending_events": 0}
+        try:
+            from backend.knowledge.database import ZemasDB
+            db = ZemasDB(str(Path(_cfg.DATA_DIR) / "sqlite" / "zemas.db"))
+            from backend.sync.queue import SyncQueue
+            queue = SyncQueue(db.conn)
+            from backend.sync.client import SyncClient
+            client = SyncClient(SYNC_SERVER_URL, queue, SYNC_DEVICE_NAME)
+            status = client.get_status()
+            db.close()
+            return status
+        except Exception:
+            return {"enabled": True, "status": "offline", "pending_events": 0}
+
     @app.get("/api/config/models")
     async def get_models_config():
         """Return model registry (API keys redacted)."""
