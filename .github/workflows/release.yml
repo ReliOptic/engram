@@ -27,9 +27,11 @@ jobs:
           name: frontend-dist
           path: frontend/dist/
 
-  build-windows:
+  # ── Windows: Engram server (proven to work) ──────────────
+  build-windows-server:
     needs: build-frontend
     runs-on: windows-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -40,13 +42,10 @@ jobs:
           name: frontend-dist
           path: frontend/dist/
 
-      # Install dependencies
-      - run: |
-          pip install -e ".[dev]" pyinstaller
-          pip install -e "dbbuilder[dev]"
+      - run: pip install -e ".[dev]" pyinstaller
 
-      # Build Engram server
-      - run: >
+      - name: Build Engram server
+        run: >
           pyinstaller
           --name engram
           --onedir
@@ -67,7 +66,9 @@ jobs:
           --hidden-import uvicorn.lifespan.on
           --hidden-import chromadb
           --hidden-import chromadb.api
+          --hidden-import chromadb.api.types
           --hidden-import chromadb.config
+          --copy-metadata chromadb
           --hidden-import backend
           --hidden-import backend.main
           --hidden-import backend.config
@@ -76,65 +77,144 @@ jobs:
           --hidden-import backend.memory
           --hidden-import backend.utils
           --hidden-import backend.sync
-          --hidden-import chromadb
-          --hidden-import chromadb.api
-          --hidden-import chromadb.api.types
-          --hidden-import chromadb.config
-          --copy-metadata chromadb
           scripts/run_server.py
 
-      # Build DB Builder
-      - run: >
-          pyinstaller
-          --name engram-db-builder
-          --onedir
-          --noconfirm
-          --windowed
-          --icon scripts/engram-db-builder.ico
-          --add-data "dbbuilder/.env.example;."
-          --hidden-import db_builder
-          --hidden-import db_builder.app
-          --hidden-import db_builder.config
-          --hidden-import db_builder.enrichment
-          --hidden-import db_builder.store
-          --hidden-import db_builder.store.chromadb_writer
-          --hidden-import db_builder.embedding
-          --hidden-import db_builder.embedding.client
-          --hidden-import db_builder.ui
-          --hidden-import db_builder.ui.main_window
-          --hidden-import db_builder.ui.build_panel
-          --hidden-import db_builder.ui.file_panel
-          --hidden-import db_builder.ui.settings_dialog
-          --hidden-import chromadb
-          --hidden-import chromadb.api
-          --hidden-import chromadb.api.types
-          --hidden-import chromadb.config
-          --copy-metadata chromadb
-          --hidden-import PySide6.QtCore
-          --hidden-import PySide6.QtGui
-          --hidden-import PySide6.QtWidgets
-          --copy-metadata PySide6
-          dbbuilder/src/db_builder/__main__.py
-
-      # Prepare installer files
-      - run: |
-          mkdir dist\installer
-          xcopy /E /I /Q dist\engram dist\installer\engram
-          xcopy /E /I /Q dist\engram-db-builder dist\installer\engram-db-builder
-          copy LICENSE dist\installer\
-          copy README.md dist\installer\
-          copy .env.example dist\installer\
-          xcopy /E /I /Q data\config dist\installer\data\config
+      - name: Package server
+        run: |
+          mkdir dist\windows-server
+          xcopy /E /I /Q dist\engram dist\windows-server\engram
+          copy LICENSE dist\windows-server\
+          copy README.md dist\windows-server\
+          copy .env.example dist\windows-server\
+          xcopy /E /I /Q data\config dist\windows-server\data\config
         shell: cmd
 
-      # Build Inno Setup installer
-      - run: |
+      - run: Compress-Archive -Path dist\windows-server\* -DestinationPath dist\Engram-${{ github.ref_name }}-windows-server.zip
+        shell: pwsh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-server
+          path: dist/Engram-*-windows-server.zip
+
+  # ── Windows: DB Builder (isolated for diagnosis) ─────────
+  build-windows-dbbuilder:
+    needs: build-frontend
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          pip install -e ".[dev]" pyinstaller
+          pip install -e "dbbuilder[dev]"
+
+      - name: "[TIMING] Pre-build snapshot"
+        run: |
+          echo "::group::Pre-build info"
+          echo "Start time: $(Get-Date -Format o)"
+          echo "Python: $(python --version)"
+          echo "PyInstaller: $(python -c 'import PyInstaller; print(PyInstaller.__version__)')"
+          echo "PySide6: $(python -c 'import PySide6; print(PySide6.__version__)')"
+          pip list | Select-String "PySide6|chromadb|pyinstaller"
+          echo "::endgroup::"
+        shell: pwsh
+
+      - name: Build DB Builder (verbose)
+        run: |
+          echo "Build start: $(Get-Date -Format o)"
+          pyinstaller `
+            --name engram-db-builder `
+            --onedir `
+            --noconfirm `
+            --windowed `
+            --log-level INFO `
+            --icon scripts/engram-db-builder.ico `
+            --add-data "dbbuilder/.env.example;." `
+            --hidden-import db_builder `
+            --hidden-import db_builder.app `
+            --hidden-import db_builder.config `
+            --hidden-import db_builder.enrichment `
+            --hidden-import db_builder.store `
+            --hidden-import db_builder.store.chromadb_writer `
+            --hidden-import db_builder.embedding `
+            --hidden-import db_builder.embedding.client `
+            --hidden-import db_builder.ui `
+            --hidden-import db_builder.ui.main_window `
+            --hidden-import db_builder.ui.build_panel `
+            --hidden-import db_builder.ui.file_panel `
+            --hidden-import db_builder.ui.settings_dialog `
+            --hidden-import chromadb `
+            --hidden-import chromadb.api `
+            --hidden-import chromadb.api.types `
+            --hidden-import chromadb.config `
+            --copy-metadata chromadb `
+            --hidden-import PySide6.QtCore `
+            --hidden-import PySide6.QtGui `
+            --hidden-import PySide6.QtWidgets `
+            --copy-metadata PySide6 `
+            dbbuilder/src/db_builder/__main__.py
+          echo "Build end: $(Get-Date -Format o)"
+        shell: pwsh
+
+      - name: "[TIMING] Post-build snapshot"
+        if: always()
+        run: |
+          echo "::group::Post-build info"
+          echo "End time: $(Get-Date -Format o)"
+          if (Test-Path dist/engram-db-builder) {
+            $size = (Get-ChildItem -Recurse dist/engram-db-builder | Measure-Object -Property Length -Sum).Sum / 1MB
+            echo "dist/engram-db-builder size: $([math]::Round($size, 1)) MB"
+          } else {
+            echo "dist/engram-db-builder: NOT FOUND"
+          }
+          if (Test-Path build) {
+            $bsize = (Get-ChildItem -Recurse build | Measure-Object -Property Length -Sum).Sum / 1MB
+            echo "build/ size: $([math]::Round($bsize, 1)) MB"
+          }
+          echo "::endgroup::"
+        shell: pwsh
+
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: windows-dbbuilder
+          path: dist/engram-db-builder/
+
+  # ── Windows: Inno Setup installer (only if both succeed) ─
+  build-windows-installer:
+    needs: [build-windows-server, build-windows-dbbuilder]
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: windows-server
+          path: dist/
+      - uses: actions/download-artifact@v4
+        with:
+          name: windows-dbbuilder
+          path: dist/installer/engram-db-builder/
+
+      - name: Unpack server zip
+        run: |
+          Expand-Archive -Path dist\Engram-*-windows-server.zip -DestinationPath dist\installer -Force
+          Remove-Item dist\Engram-*-windows-server.zip
+        shell: pwsh
+
+      - name: Install & run Inno Setup
+        run: |
           choco install innosetup -y --no-progress
           & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" scripts\engram-setup.iss
         shell: pwsh
 
-      # Create portable ZIP
-      - run: Compress-Archive -Path dist\installer\* -DestinationPath dist\Engram-${{ github.ref_name }}-windows.zip
+      - name: Create portable ZIP
+        run: Compress-Archive -Path dist\installer\* -DestinationPath dist\Engram-${{ github.ref_name }}-windows.zip
         shell: pwsh
 
       - uses: actions/upload-artifact@v4
@@ -146,9 +226,11 @@ jobs:
           name: windows-portable
           path: dist/Engram-*-windows.zip
 
+  # ── macOS ────────────────────────────────────────────────
   build-macos:
     needs: build-frontend
     runs-on: macos-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -159,13 +241,12 @@ jobs:
           name: frontend-dist
           path: frontend/dist/
 
-      # Install dependencies
       - run: |
           pip install -e ".[dev]" pyinstaller
           pip install -e "dbbuilder[dev]"
 
-      # Build Engram server
-      - run: >
+      - name: Build Engram server
+        run: >
           pyinstaller
           --name engram
           --onedir
@@ -185,7 +266,9 @@ jobs:
           --hidden-import uvicorn.lifespan.on
           --hidden-import chromadb
           --hidden-import chromadb.api
+          --hidden-import chromadb.api.types
           --hidden-import chromadb.config
+          --copy-metadata chromadb
           --hidden-import backend
           --hidden-import backend.main
           --hidden-import backend.config
@@ -194,15 +277,10 @@ jobs:
           --hidden-import backend.memory
           --hidden-import backend.utils
           --hidden-import backend.sync
-          --hidden-import chromadb
-          --hidden-import chromadb.api
-          --hidden-import chromadb.api.types
-          --hidden-import chromadb.config
-          --copy-metadata chromadb
           scripts/run_server.py
 
-      # Build DB Builder
-      - run: >
+      - name: Build DB Builder
+        run: >
           pyinstaller
           --name "Engram DB Builder"
           --onedir
@@ -233,23 +311,20 @@ jobs:
           --copy-metadata PySide6
           dbbuilder/src/db_builder/__main__.py
 
-      # Create macOS DMG
-      - run: |
+      - name: Create DMG
+        run: |
           mkdir -p dmg_content
           cp -r dist/engram dmg_content/
           cp -r "dist/Engram DB Builder" dmg_content/
           cp LICENSE README.md .env.example dmg_content/
           mkdir -p dmg_content/data/config
           cp -r data/config/* dmg_content/data/config/
-
           hdiutil create -volname "Engram" \
             -srcfolder dmg_content \
             -ov -format UDZO \
             "dist/Engram-${{ github.ref_name }}-macos.dmg"
 
-      # Also create a zip for non-DMG preference
-      - run: |
-          cd dmg_content && zip -r "../dist/Engram-${{ github.ref_name }}-macos.zip" .
+      - run: cd dmg_content && zip -r "../dist/Engram-${{ github.ref_name }}-macos.zip" .
 
       - uses: actions/upload-artifact@v4
         with:
@@ -260,13 +335,19 @@ jobs:
           name: macos-zip
           path: dist/Engram-*-macos.zip
 
+  # ── Release (proceeds even if DB Builder fails) ──────────
   release:
-    needs: [build-windows, build-macos]
+    needs: [build-windows-server, build-windows-dbbuilder, build-windows-installer, build-macos]
+    if: always() && needs.build-windows-server.result == 'success' && needs.build-macos.result == 'success'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
         with:
           path: artifacts/
+          merge-multiple: false
+
+      - name: List artifacts
+        run: find artifacts/ -type f | head -20
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -276,6 +357,7 @@ jobs:
           files: |
             artifacts/windows-installer/*
             artifacts/windows-portable/*
+            artifacts/windows-server/*
             artifacts/macos-dmg/*
             artifacts/macos-zip/*
           body: |
@@ -283,7 +365,7 @@ jobs:
 
             | Platform | Installer | Portable |
             |----------|-----------|----------|
-            | **Windows** | `Engram-Setup-*.exe` | `Engram-*-windows.zip` |
+            | **Windows** | `Engram-Setup-*.exe` (if available) | `Engram-*-windows-server.zip` |
             | **macOS** | `Engram-*-macos.dmg` | `Engram-*-macos.zip` |
 
             ### Quick Start
@@ -294,4 +376,4 @@ jobs:
 
             ### Components
             - **Engram** — Multi-agent AI support system (web app)
-            - **Engram DB Builder** — Bulk document import tool (desktop GUI)
+            - **Engram DB Builder** — Bulk document import tool (desktop GUI, optional)
