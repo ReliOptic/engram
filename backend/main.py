@@ -514,6 +514,19 @@ def create_app() -> FastAPI:
         except Exception as e:
             return {"results": [], "count": 0, "error": str(e)}
 
+    # Serve frontend dist/ if it exists (production mode — no Node.js needed)
+    dist_dir = Path(__file__).parent.parent / "frontend" / "dist"
+    if dist_dir.exists():
+        from starlette.responses import FileResponse
+
+        @app.get("/{path:path}")
+        async def serve_spa(path: str):
+            """Serve pre-built frontend. SPA catch-all for client-side routes."""
+            file_path = dist_dir / path
+            if file_path.exists() and file_path.is_file():
+                return FileResponse(str(file_path))
+            return FileResponse(str(dist_dir / "index.html"))
+
     return app
 
 
