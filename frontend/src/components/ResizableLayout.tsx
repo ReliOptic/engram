@@ -102,6 +102,13 @@ export function ResizableLayout({ header, leftTop, leftBottom, center, right }: 
     });
   }, [rightCollapsed]);
 
+  // Listen for Ctrl+B keyboard shortcut via custom event from useKeyboardShortcuts
+  useEffect(() => {
+    const handler = () => toggleLeft();
+    window.addEventListener('zemas-toggle-left-sidebar', handler);
+    return () => window.removeEventListener('zemas-toggle-left-sidebar', handler);
+  }, [toggleLeft]);
+
   const toggleRight = useCallback(() => {
     setRightCollapsed((prev) => {
       const next = !prev;

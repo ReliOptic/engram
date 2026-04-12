@@ -173,6 +173,15 @@ export function ChatPage() {
   // Keyboard shortcuts
   useKeyboardShortcuts({
     onNewChat: handleNewChat,
+    onFocusInput: () => {
+      const input = document.querySelector<HTMLElement>(
+        'textarea[placeholder*="Describe"], input[placeholder*="Describe"]'
+      );
+      input?.focus();
+    },
+    onToggleLeftSidebar: () => {
+      window.dispatchEvent(new CustomEvent('zemas-toggle-left-sidebar'));
+    },
     onStop: isProcessing ? handleStop : undefined,
   });
 
