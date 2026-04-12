@@ -11,7 +11,7 @@ problems and wants their solutions to become searchable institutional knowledge.
 
 ```bash
 # 1. Clone
-git clone https://github.com/YOUR_USERNAME/engram.git
+git clone https://github.com/ReliOptic/engram.git
 cd engram
 
 # 2. Install (Python 3.12+ required)
@@ -96,6 +96,33 @@ python -m backend.sync.export export --output engram-knowledge.zip
 python -m backend.sync.export import --input engram-knowledge.zip
 ```
 
+## Windows Installation
+
+### Option A: Download Installer (Recommended)
+
+Download `Engram-Setup-x.x.x.exe` from [Releases](https://github.com/ReliOptic/engram/releases) and run it.
+Choose components during install:
+
+- **Engram** — main web app (opens in browser)
+- **Engram DB Builder** — desktop GUI for bulk document import
+
+### Option B: Build from Source
+
+Requires Python 3.12+ and [Inno Setup 6](https://jrsoftware.org/isinfo.php) (for installer).
+
+```batch
+:: 1. Build both EXEs with PyInstaller
+scripts\build_windows.bat
+
+:: 2. (Optional) Create installer EXE
+::    Open scripts\engram-setup.iss in Inno Setup Compiler → Build
+::    Output: dist\Engram-Setup-0.1.0.exe
+```
+
+Without the installer, run directly:
+- `dist\engram\engram.exe` — starts server + opens browser at http://localhost:8000
+- `dist\engram-db-builder\engram-db-builder.exe` — launches DB Builder GUI
+
 ## Configuration
 
 All settings are in the app UI: `http://localhost:8000/settings`
@@ -128,4 +155,4 @@ All settings are in the app UI: `http://localhost:8000/settings`
 
 ## License
 
-MIT
+Apache License 2.0 — see [LICENSE](LICENSE)
