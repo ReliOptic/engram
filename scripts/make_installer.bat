@@ -116,7 +116,10 @@ echo   Building DB Builder...
     --hidden-import db_builder.ui.file_panel ^
     --hidden-import db_builder.ui.settings_dialog ^
     --collect-all chromadb ^
-    --collect-all PySide6 ^
+    --hidden-import PySide6.QtCore ^
+    --hidden-import PySide6.QtGui ^
+    --hidden-import PySide6.QtWidgets ^
+    --copy-metadata PySide6 ^
     dbbuilder\src\db_builder\__main__.py >nul 2>&1
 
 if errorlevel 1 (
