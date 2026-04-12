@@ -16,11 +16,17 @@ from backend.knowledge.vectordb import VectorDB
 
 
 class CaseRecorder:
-    """Dual-write recorder: ChromaDB (search) + SQLite (structured queries)."""
+    """Dual-write recorder: ChromaDB (search) + SQLite (structured queries).
 
-    def __init__(self, vectordb: VectorDB, db: ZemasDB | None = None):
+    If a ``SyncQueue`` is provided, case close events are queued for
+    push to the sync server. This is the only integration point
+    between the existing ZEMAS flow and the Phase 3 sync system.
+    """
+
+    def __init__(self, vectordb: VectorDB, db: ZemasDB | None = None, sync_queue=None):
         self._vectordb = vectordb
         self._db = db
+        self._sync_queue = sync_queue
 
     async def record_case(
         self,
@@ -58,6 +64,24 @@ class CaseRecorder:
             self._db.close_case(
                 case_id=case_id,
                 resolution=case_metadata.get("resolution", ""),
+            )
+
+        # Sync queue: push case_closed event for server sync
+        if self._sync_queue:
+            self._sync_queue.push_event(
+                event_type="case_closed",
+                collection="case_records",
+                entity_id=case_metadata["case_id"],
+                payload={
+                    "case_id": case_metadata["case_id"],
+                    "account": case_metadata.get("account", ""),
+                    "tool": case_metadata.get("tool", ""),
+                    "component": case_metadata.get("component", ""),
+                    "title": case_metadata.get("title", ""),
+                    "resolution": case_metadata.get("resolution", ""),
+                    "type_a_chunk": type_a,
+                    "type_b_chunk": type_b,
+                },
             )
 
         return type_a_id, type_b_id
