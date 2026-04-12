@@ -46,7 +46,7 @@ to diagnose equipment issues, find relevant past cases, and validate solutions a
 ## Development Rules
 
 - Python: pytest, async/await, type hints required
-- Frontend: React + TypeScript + Vite
+- Frontend: React + TypeScript + Vite + vitest (regression tests)
 - Tests before implementation, always
 - Follow `docs/scaffolding-plan-v3.md` Section references exactly
 - Each phase has explicit completion criteria — verify before moving on

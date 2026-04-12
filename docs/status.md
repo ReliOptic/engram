@@ -1,8 +1,8 @@
 # ZEMAS Project Status
 
 **Last updated**: 2026-04-12
-**Overall progress**: ALL PHASES COMPLETE (9/9) + UX OVERHAUL + DB BUILDER INTEGRATION
-**Total tests**: 79/79 passing + frontend builds clean
+**Overall progress**: ALL PHASES COMPLETE (9/9) + UX OVERHAUL + DB BUILDER INTEGRATION + QA FIXES
+**Total tests**: 79/79 backend + 7/7 frontend (vitest) + 130/130 DB Builder
 
 ---
 
@@ -21,6 +21,7 @@
 | 2 | Dreaming | Light/REM/Deep sleep, dedup, graph, cron | COMPLETE | 3/3 pass |
 | **UX** | **UX Overhaul** | **Session persistence, settings, resizable layout, polish** | **COMPLETE** | **14/14 pass** |
 | **DBI** | **DB Builder Integration** | **Shared OpenRouter EF, manuals collection, cross-project contract** | **COMPLETE** | **7/7 pass** |
+| **QA** | **QA Fixes + Frontend Tests** | **WS StrictMode, delete confirm, shortcuts, responsive, vitest** | **COMPLETE** | **7/7 frontend** |
 
 ---
 
@@ -139,6 +140,9 @@ ZZZ/                         ← ZEMAS backend + frontend
 - DB Builder's `DBBuilderConfig.chromadb_dir` defaults to
   `$ZEMAS_DATA_DIR/chroma_db`, so setting `ZEMAS_DATA_DIR` in both
   `.env` files makes them point at the same directory.
+- **CLI build**: `python -m db_builder --cli build` (parse → chunk → embed →
+  ChromaDB). Use `--file <path>` for single file, `--source manual` for type
+  filter. Full pipeline verified E2E with 14 chunks from synthetic PROVE manual.
 - **Concurrency caveat**: ChromaDB uses SQLite with file locks. Do not
   run a DB Builder build while the ZEMAS backend is actively querying —
   stop ZEMAS, run the build, restart ZEMAS. A long-lived ZEMAS session
