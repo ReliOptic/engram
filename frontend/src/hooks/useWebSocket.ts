@@ -63,7 +63,17 @@ export function useWebSocket(url: string): UseWebSocketReturn {
     return () => {
       activeRef.current = false;
       clearTimeout(reconnectTimeout.current);
-      wsRef.current?.close();
+      const ws = wsRef.current;
+      if (ws) {
+        if (ws.readyState === WebSocket.CONNECTING) {
+          // Let the handshake finish, then close gracefully.
+          // Closing during CONNECTING causes the browser warning
+          // "WebSocket is closed before the connection is established."
+          ws.onopen = () => ws.close();
+        } else {
+          ws.close();
+        }
+      }
     };
   }, [connect]);
 

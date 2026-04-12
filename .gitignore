@@ -13,6 +13,7 @@ build/
 
 # Data (local persistence)
 data/chroma_db/
+data/chroma_db.backup/
 data/sqlite/
 
 # Node
@@ -28,4 +29,7 @@ frontend/dist/
 # OS
 .DS_Store
 Thumbs.db
+
+# Tools
 .gstack/
+.omc/

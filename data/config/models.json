@@ -18,31 +18,31 @@
     },
     "finder": {
       "provider": "openrouter",
-      "model": "google/gemini-3.1-flash-lite-preview",
+      "model": "google/gemini-2.0-flash-lite-001",
       "max_tokens": 4096,
       "temperature": 0.2
     },
     "reviewer": {
       "provider": "openrouter",
-      "model": "google/gemini-3.1-flash-lite-preview",
+      "model": "google/gemini-2.0-flash-lite-001",
       "max_tokens": 4096,
       "temperature": 0.2
     },
     "orchestrator": {
       "provider": "openrouter",
-      "model": "google/gemini-3.1-flash-lite-preview",
+      "model": "google/gemini-2.0-flash-lite-001",
       "max_tokens": 2048,
       "temperature": 0.1
     },
     "tacit_extraction": {
       "provider": "openrouter",
-      "model": "google/gemini-3.1-flash-lite-preview",
+      "model": "google/gemini-2.0-flash-lite-001",
       "max_tokens": 4096,
       "temperature": 0.3
     },
     "dreaming": {
       "provider": "openrouter",
-      "model": "google/gemini-3.1-flash-lite-preview",
+      "model": "google/gemini-2.0-flash-lite-001",
       "max_tokens": 4096,
       "temperature": 0.5
     },
@@ -52,7 +52,7 @@
     }
   },
   "cost_per_million_tokens": {
-    "google/gemini-3.1-flash-lite-preview": {
+    "google/gemini-2.0-flash-lite-001": {
       "input": 0.0,
       "output": 0.0
     },
