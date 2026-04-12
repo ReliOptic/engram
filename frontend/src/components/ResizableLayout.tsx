@@ -13,6 +13,7 @@ const MAX_SIDEBAR = 500;
 const MIN_CENTER = 400;
 const DEFAULT_LEFT = 280;
 const DEFAULT_RIGHT = 280;
+const RESPONSIVE_BREAKPOINT = 900;
 
 const STORAGE_KEY = 'zemas-layout-widths';
 const COLLAPSE_KEY = 'zemas-layout-collapsed';
@@ -108,6 +109,19 @@ export function ResizableLayout({ header, leftTop, leftBottom, center, right }: 
     window.addEventListener('zemas-toggle-left-sidebar', handler);
     return () => window.removeEventListener('zemas-toggle-left-sidebar', handler);
   }, [toggleLeft]);
+
+  // Auto-collapse sidebars on narrow viewports
+  useEffect(() => {
+    const checkWidth = () => {
+      if (window.innerWidth < RESPONSIVE_BREAKPOINT) {
+        setLeftCollapsed(true);
+        setRightCollapsed(true);
+      }
+    };
+    checkWidth();
+    window.addEventListener('resize', checkWidth);
+    return () => window.removeEventListener('resize', checkWidth);
+  }, []);
 
   const toggleRight = useCallback(() => {
     setRightCollapsed((prev) => {
