@@ -1,0 +1,275 @@
+name: Build & Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+        working-directory: frontend
+      - run: npm run build
+        working-directory: frontend
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist/
+
+  build-windows:
+    needs: build-frontend
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist/
+
+      # Install dependencies
+      - run: |
+          pip install -e ".[dev]" pyinstaller
+          pip install -e "dbbuilder[dev]"
+
+      # Build Engram server
+      - run: >
+          pyinstaller
+          --name engram
+          --onedir
+          --noconfirm
+          --icon scripts/engram.ico
+          --add-data "frontend/dist;frontend/dist"
+          --add-data "data/config;data/config"
+          --add-data ".env.example;."
+          --hidden-import uvicorn.logging
+          --hidden-import uvicorn.loops
+          --hidden-import uvicorn.loops.auto
+          --hidden-import uvicorn.protocols
+          --hidden-import uvicorn.protocols.http
+          --hidden-import uvicorn.protocols.http.auto
+          --hidden-import uvicorn.protocols.websockets
+          --hidden-import uvicorn.protocols.websockets.auto
+          --hidden-import uvicorn.lifespan
+          --hidden-import uvicorn.lifespan.on
+          --hidden-import chromadb
+          --hidden-import chromadb.api
+          --hidden-import chromadb.config
+          --hidden-import backend
+          --hidden-import backend.main
+          --hidden-import backend.config
+          --hidden-import backend.agents
+          --hidden-import backend.knowledge
+          --hidden-import backend.memory
+          --hidden-import backend.utils
+          --hidden-import backend.sync
+          --collect-all chromadb
+          scripts/run_server.py
+
+      # Build DB Builder
+      - run: >
+          pyinstaller
+          --name engram-db-builder
+          --onedir
+          --noconfirm
+          --windowed
+          --icon scripts/engram-db-builder.ico
+          --add-data "dbbuilder/.env.example;."
+          --hidden-import db_builder
+          --hidden-import db_builder.app
+          --hidden-import db_builder.config
+          --hidden-import db_builder.enrichment
+          --hidden-import db_builder.store
+          --hidden-import db_builder.store.chromadb_writer
+          --hidden-import db_builder.embedding
+          --hidden-import db_builder.embedding.client
+          --hidden-import db_builder.ui
+          --hidden-import db_builder.ui.main_window
+          --hidden-import db_builder.ui.build_panel
+          --hidden-import db_builder.ui.file_panel
+          --hidden-import db_builder.ui.settings_dialog
+          --collect-all chromadb
+          --collect-all PySide6
+          dbbuilder/src/db_builder/__main__.py
+
+      # Prepare installer files
+      - run: |
+          mkdir dist\installer
+          xcopy /E /I /Q dist\engram dist\installer\engram
+          xcopy /E /I /Q dist\engram-db-builder dist\installer\engram-db-builder
+          copy LICENSE dist\installer\
+          copy README.md dist\installer\
+          copy .env.example dist\installer\
+          xcopy /E /I /Q data\config dist\installer\data\config
+        shell: cmd
+
+      # Build Inno Setup installer
+      - run: |
+          choco install innosetup -y --no-progress
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" scripts\engram-setup.iss
+        shell: pwsh
+
+      # Create portable ZIP
+      - run: Compress-Archive -Path dist\installer\* -DestinationPath dist\Engram-${{ github.ref_name }}-windows.zip
+        shell: pwsh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer
+          path: dist/Engram-Setup-*.exe
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-portable
+          path: dist/Engram-*-windows.zip
+
+  build-macos:
+    needs: build-frontend
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist/
+
+      # Install dependencies
+      - run: |
+          pip install -e ".[dev]" pyinstaller
+          pip install -e "dbbuilder[dev]"
+
+      # Build Engram server
+      - run: >
+          pyinstaller
+          --name engram
+          --onedir
+          --noconfirm
+          --add-data "frontend/dist:frontend/dist"
+          --add-data "data/config:data/config"
+          --add-data ".env.example:."
+          --hidden-import uvicorn.logging
+          --hidden-import uvicorn.loops
+          --hidden-import uvicorn.loops.auto
+          --hidden-import uvicorn.protocols
+          --hidden-import uvicorn.protocols.http
+          --hidden-import uvicorn.protocols.http.auto
+          --hidden-import uvicorn.protocols.websockets
+          --hidden-import uvicorn.protocols.websockets.auto
+          --hidden-import uvicorn.lifespan
+          --hidden-import uvicorn.lifespan.on
+          --hidden-import chromadb
+          --hidden-import chromadb.api
+          --hidden-import chromadb.config
+          --hidden-import backend
+          --hidden-import backend.main
+          --hidden-import backend.config
+          --hidden-import backend.agents
+          --hidden-import backend.knowledge
+          --hidden-import backend.memory
+          --hidden-import backend.utils
+          --hidden-import backend.sync
+          --collect-all chromadb
+          scripts/run_server.py
+
+      # Build DB Builder
+      - run: >
+          pyinstaller
+          --name "Engram DB Builder"
+          --onedir
+          --noconfirm
+          --windowed
+          --add-data "dbbuilder/.env.example:."
+          --hidden-import db_builder
+          --hidden-import db_builder.app
+          --hidden-import db_builder.config
+          --hidden-import db_builder.enrichment
+          --hidden-import db_builder.store
+          --hidden-import db_builder.store.chromadb_writer
+          --hidden-import db_builder.embedding
+          --hidden-import db_builder.embedding.client
+          --hidden-import db_builder.ui
+          --hidden-import db_builder.ui.main_window
+          --hidden-import db_builder.ui.build_panel
+          --hidden-import db_builder.ui.file_panel
+          --hidden-import db_builder.ui.settings_dialog
+          --collect-all chromadb
+          --collect-all PySide6
+          dbbuilder/src/db_builder/__main__.py
+
+      # Create macOS DMG
+      - run: |
+          mkdir -p dmg_content
+          cp -r dist/engram dmg_content/
+          cp -r "dist/Engram DB Builder" dmg_content/
+          cp LICENSE README.md .env.example dmg_content/
+          mkdir -p dmg_content/data/config
+          cp -r data/config/* dmg_content/data/config/
+
+          hdiutil create -volname "Engram" \
+            -srcfolder dmg_content \
+            -ov -format UDZO \
+            "dist/Engram-${{ github.ref_name }}-macos.dmg"
+
+      # Also create a zip for non-DMG preference
+      - run: |
+          cd dmg_content && zip -r "../dist/Engram-${{ github.ref_name }}-macos.zip" .
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-dmg
+          path: dist/Engram-*-macos.dmg
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-zip
+          path: dist/Engram-*-macos.zip
+
+  release:
+    needs: [build-windows, build-macos]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts/
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Engram ${{ github.ref_name }}
+          generate_release_notes: true
+          files: |
+            artifacts/windows-installer/*
+            artifacts/windows-portable/*
+            artifacts/macos-dmg/*
+            artifacts/macos-zip/*
+          body: |
+            ## Downloads
+
+            | Platform | Installer | Portable |
+            |----------|-----------|----------|
+            | **Windows** | `Engram-Setup-*.exe` | `Engram-*-windows.zip` |
+            | **macOS** | `Engram-*-macos.dmg` | `Engram-*-macos.zip` |
+
+            ### Quick Start
+            1. Download and install/extract
+            2. Run **Engram** — opens browser at http://localhost:8000
+            3. Go to Settings > API Keys > enter your OpenRouter key
+            4. Start chatting!
+
+            ### Components
+            - **Engram** — Multi-agent AI support system (web app)
+            - **Engram DB Builder** — Bulk document import tool (desktop GUI)
