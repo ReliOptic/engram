@@ -15,6 +15,13 @@ export function useWebSocket(url: string): UseWebSocketReturn {
   const [lastMessage, setLastMessage] = useState<WsMessage | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeout = useRef<ReturnType<typeof setTimeout>>(undefined);
+  // Guard: prevents the onclose auto-reconnect from firing after the
+  // useEffect cleanup runs. Without this, React StrictMode (which
+  // unmounts + remounts to surface side effects) causes a cascade:
+  // cleanup closes WS1 → onclose schedules reconnect → reconnect
+  // opens WS3 alongside WS2 (from second mount). The backend then
+  // tries to send on the already-closed WS1 and crashes.
+  const activeRef = useRef(true);
 
   const connect = useCallback(() => {
     if (wsRef.current?.readyState === WebSocket.OPEN) return;
@@ -22,9 +29,12 @@ export function useWebSocket(url: string): UseWebSocketReturn {
     setStatus('connecting');
     const ws = new WebSocket(url);
 
-    ws.onopen = () => setStatus('connected');
+    ws.onopen = () => {
+      if (activeRef.current) setStatus('connected');
+    };
 
     ws.onmessage = (event) => {
+      if (!activeRef.current) return;
       try {
         const data = JSON.parse(event.data) as WsMessage;
         setLastMessage(data);
@@ -37,6 +47,7 @@ export function useWebSocket(url: string): UseWebSocketReturn {
     };
 
     ws.onclose = () => {
+      if (!activeRef.current) return;
       setStatus('disconnected');
       reconnectTimeout.current = setTimeout(connect, 3000);
     };
@@ -47,8 +58,10 @@ export function useWebSocket(url: string): UseWebSocketReturn {
   }, [url]);
 
   useEffect(() => {
+    activeRef.current = true;
     connect();
     return () => {
+      activeRef.current = false;
       clearTimeout(reconnectTimeout.current);
       wsRef.current?.close();
     };

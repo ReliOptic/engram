@@ -14,12 +14,33 @@ import uuid
 from datetime import UTC, datetime
 from pathlib import Path
 
+import logging
+
 from fastapi import FastAPI, File, UploadFile, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from backend.config import VERSION, load_dropdowns_config, load_models_config
 import backend.config as _cfg
+
+logger = logging.getLogger(__name__)
+
+
+async def _safe_send(websocket: WebSocket, data: dict) -> bool:
+    """Send JSON over WebSocket, returning False if the socket is dead.
+
+    React StrictMode double-mounts the frontend WebSocket hook. The first
+    connection gets cleaned up, but the backend may still try to send on it.
+    Without this guard, ``send_text`` raises ``WebSocketDisconnect`` or
+    ``RuntimeError('Cannot call send once a close message has been sent')``,
+    which crashes the entire handler and prevents session persistence.
+    """
+    try:
+        await websocket.send_text(json.dumps(data))
+        return True
+    except (WebSocketDisconnect, RuntimeError) as e:
+        logger.warning("WebSocket send failed (client likely disconnected): %s", e)
+        return False
 
 
 # --- Request models ---
@@ -140,14 +161,15 @@ def create_app() -> FastAPI:
                         db.close()
 
                     # Send acknowledgment with session_id
-                    await websocket.send_text(json.dumps({
+                    if not await _safe_send(websocket, {
                         "type": "status_update",
                         "payload": {
                             "status": "processing",
                             "session_id": session_id,
                             "case_id": f"{silo.get('account', 'X')}-{datetime.now(tz=UTC).strftime('%Y%m%d%H%M%S')}",
                         },
-                    }))
+                    }):
+                        continue  # Client gone, skip processing
 
                     # Run orchestrator (if LLM configured), otherwise echo
                     try:
@@ -155,13 +177,16 @@ def create_app() -> FastAPI:
                             app, websocket, text, silo, session_id,
                         )
                     except Exception as e:
-                        await websocket.send_text(json.dumps({
+                        await _safe_send(websocket, {
                             "type": "error",
                             "payload": {"message": str(e)},
-                        }))
+                        })
                 else:
                     # Echo for non-message types (backward compat)
-                    await websocket.send_text(raw)
+                    try:
+                        await websocket.send_text(raw)
+                    except (WebSocketDisconnect, RuntimeError):
+                        pass
 
         except WebSocketDisconnect:
             pass
@@ -489,7 +514,7 @@ async def _run_orchestrator(app, websocket: WebSocket, query: str, silo: dict, s
     except Exception:
         # No API keys — echo mode fallback
         msg_id = str(uuid.uuid4())
-        await websocket.send_text(json.dumps({
+        await _safe_send(websocket, {
             "type": "agent_message",
             "payload": {
                 "id": msg_id,
@@ -499,7 +524,7 @@ async def _run_orchestrator(app, websocket: WebSocket, query: str, silo: dict, s
                 "timestamp": datetime.now(tz=UTC).isoformat(),
                 "session_id": session_id,
             },
-        }))
+        })
         # Persist echo message
         if session_id:
             db = _get_db()
@@ -545,17 +570,17 @@ async def _run_orchestrator(app, websocket: WebSocket, query: str, silo: dict, s
 
     async def streaming_get(agent_name, user_query, conversation):
         # Send thinking status
-        await websocket.send_text(json.dumps({
+        await _safe_send(websocket, {
             "type": "status_update",
             "payload": {"agent": agent_name, "status": "thinking"},
-        }))
+        })
 
         response = await original_get(agent_name, user_query, conversation)
 
         # Send the agent message
         if response.contribution_type != "PASS":
             msg_id = str(uuid.uuid4())
-            await websocket.send_text(json.dumps({
+            await _safe_send(websocket, {
                 "type": "agent_message",
                 "payload": {
                     "id": msg_id,
@@ -566,7 +591,7 @@ async def _run_orchestrator(app, websocket: WebSocket, query: str, silo: dict, s
                     "timestamp": datetime.now(tz=UTC).isoformat(),
                     "session_id": session_id,
                 },
-            }))
+            })
 
             # Persist agent message
             if session_id:
@@ -583,10 +608,10 @@ async def _run_orchestrator(app, websocket: WebSocket, query: str, silo: dict, s
                     db.close()
 
         # Send done status
-        await websocket.send_text(json.dumps({
+        await _safe_send(websocket, {
             "type": "status_update",
             "payload": {"agent": agent_name, "status": "done"},
-        }))
+        })
 
         return response
 
@@ -595,7 +620,7 @@ async def _run_orchestrator(app, websocket: WebSocket, query: str, silo: dict, s
     result = await orchestrator.run(augmented_query)
 
     # Send completion
-    await websocket.send_text(json.dumps({
+    await _safe_send(websocket, {
         "type": "status_update",
         "payload": {
             "status": "complete",
@@ -603,7 +628,7 @@ async def _run_orchestrator(app, websocket: WebSocket, query: str, silo: dict, s
             "terminated_reason": result.terminated_reason,
             "round_count": result.round_count,
         },
-    }))
+    })
 
     return result
 
