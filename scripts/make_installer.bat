@@ -84,7 +84,11 @@ echo   Building Engram server...
     --hidden-import backend.memory ^
     --hidden-import backend.utils ^
     --hidden-import backend.sync ^
-    --collect-all chromadb ^
+    --hidden-import chromadb ^
+    --hidden-import chromadb.api ^
+    --hidden-import chromadb.api.types ^
+    --hidden-import chromadb.config ^
+    --copy-metadata chromadb ^
     scripts\run_server.py >nul 2>&1
 
 if errorlevel 1 (
@@ -115,7 +119,11 @@ echo   Building DB Builder...
     --hidden-import db_builder.ui.build_panel ^
     --hidden-import db_builder.ui.file_panel ^
     --hidden-import db_builder.ui.settings_dialog ^
-    --collect-all chromadb ^
+    --hidden-import chromadb ^
+    --hidden-import chromadb.api ^
+    --hidden-import chromadb.api.types ^
+    --hidden-import chromadb.config ^
+    --copy-metadata chromadb ^
     --hidden-import PySide6.QtCore ^
     --hidden-import PySide6.QtGui ^
     --hidden-import PySide6.QtWidgets ^
