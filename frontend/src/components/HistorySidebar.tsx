@@ -170,7 +170,9 @@ export function HistorySidebar({
                       onClick={(e) => {
                         e.stopPropagation();
                         setMenuOpen(null);
-                        onDelete?.(session.session_id);
+                        if (window.confirm(`Delete "${session.title || 'Untitled'}"? This cannot be undone.`)) {
+                          onDelete?.(session.session_id);
+                        }
                       }}
                     >
                       Delete
