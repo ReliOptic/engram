@@ -1,0 +1,340 @@
+{
+  "version": "1.0.0",
+  "lastScanned": 1775837567853,
+  "projectRoot": "/home/reliqbit/project/ZZZ",
+  "techStack": {
+    "languages": [
+      {
+        "name": "Python",
+        "version": null,
+        "confidence": "high",
+        "markers": [
+          "pyproject.toml"
+        ]
+      }
+    ],
+    "frameworks": [
+      {
+        "name": "fastapi",
+        "version": null,
+        "category": "backend"
+      },
+      {
+        "name": "pytest",
+        "version": null,
+        "category": "testing"
+      }
+    ],
+    "packageManager": null,
+    "runtime": null
+  },
+  "build": {
+    "buildCommand": null,
+    "testCommand": "pytest",
+    "lintCommand": "ruff check",
+    "devCommand": null,
+    "scripts": {}
+  },
+  "conventions": {
+    "namingStyle": null,
+    "importStyle": null,
+    "testPattern": null,
+    "fileOrganization": null
+  },
+  "structure": {
+    "isMonorepo": false,
+    "workspaces": [],
+    "mainDirectories": [
+      "docs",
+      "scripts",
+      "tests"
+    ],
+    "gitBranches": null
+  },
+  "customNotes": [],
+  "directoryMap": {
+    "DB": {
+      "path": "DB",
+      "purpose": null,
+      "fileCount": 0,
+      "lastAccessed": 1775837567835,
+      "keyFiles": []
+    },
+    "DB_Builder": {
+      "path": "DB_Builder",
+      "purpose": null,
+      "fileCount": 4,
+      "lastAccessed": 1775837567837,
+      "keyFiles": [
+        "pyproject.toml"
+      ]
+    },
+    "backend": {
+      "path": "backend",
+      "purpose": null,
+      "fileCount": 3,
+      "lastAccessed": 1775837567841,
+      "keyFiles": [
+        "__init__.py",
+        "config.py",
+        "main.py"
+      ]
+    },
+    "builder": {
+      "path": "builder",
+      "purpose": null,
+      "fileCount": 0,
+      "lastAccessed": 1775837567844,
+      "keyFiles": []
+    },
+    "bun-linux-x64": {
+      "path": "bun-linux-x64",
+      "purpose": null,
+      "fileCount": 1,
+      "lastAccessed": 1775837567845,
+      "keyFiles": [
+        "bun"
+      ]
+    },
+    "data": {
+      "path": "data",
+      "purpose": "Data files",
+      "fileCount": 0,
+      "lastAccessed": 1775837567846,
+      "keyFiles": []
+    },
+    "docs": {
+      "path": "docs",
+      "purpose": "Documentation",
+      "fileCount": 4,
+      "lastAccessed": 1775837567846,
+      "keyFiles": [
+        "dedup-policy.md",
+        "implementation-plan-phase0a.md",
+        "scaffolding-plan-v3.md",
+        "status.md"
+      ]
+    },
+    "frontend": {
+      "path": "frontend",
+      "purpose": null,
+      "fileCount": 10,
+      "lastAccessed": 1775837567846,
+      "keyFiles": [
+        "README.md",
+        "eslint.config.js",
+        "index.html",
+        "package-lock.json",
+        "package.json"
+      ]
+    },
+    "scripts": {
+      "path": "scripts",
+      "purpose": "Build/utility scripts",
+      "fileCount": 4,
+      "lastAccessed": 1775837567847,
+      "keyFiles": [
+        "bootstrap.py",
+        "dreaming_cron.py",
+        "e2e_test.py",
+        "harsh_smoke_test.py"
+      ]
+    },
+    "tests": {
+      "path": "tests",
+      "purpose": "Test files",
+      "fileCount": 14,
+      "lastAccessed": 1775837567847,
+      "keyFiles": [
+        "__init__.py",
+        "conftest.py",
+        "test_api_endpoints.py",
+        "test_contribution_validator.py",
+        "test_database.py"
+      ]
+    },
+    "zemas.egg-info": {
+      "path": "zemas.egg-info",
+      "purpose": null,
+      "fileCount": 5,
+      "lastAccessed": 1775837567848,
+      "keyFiles": [
+        "PKG-INFO",
+        "SOURCES.txt",
+        "dependency_links.txt",
+        "requires.txt",
+        "top_level.txt"
+      ]
+    },
+    "DB_Builder/data": {
+      "path": "DB_Builder/data",
+      "purpose": "Data files",
+      "fileCount": 1,
+      "lastAccessed": 1775837567849,
+      "keyFiles": [
+        "db_builder.db"
+      ]
+    },
+    "DB_Builder/docs": {
+      "path": "DB_Builder/docs",
+      "purpose": "Documentation",
+      "fileCount": 3,
+      "lastAccessed": 1775837567849,
+      "keyFiles": [
+        "db-builder-spec.md",
+        "original-spec.md",
+        "status.md"
+      ]
+    },
+    "DB_Builder/scripts": {
+      "path": "DB_Builder/scripts",
+      "purpose": "Build/utility scripts",
+      "fileCount": 0,
+      "lastAccessed": 1775837567849,
+      "keyFiles": []
+    },
+    "DB_Builder/src": {
+      "path": "DB_Builder/src",
+      "purpose": "Source code",
+      "fileCount": 0,
+      "lastAccessed": 1775837567850,
+      "keyFiles": []
+    },
+    "backend/utils": {
+      "path": "backend/utils",
+      "purpose": "Utility functions",
+      "fileCount": 4,
+      "lastAccessed": 1775837567850,
+      "keyFiles": [
+        "__init__.py",
+        "llm_client.py",
+        "openai_client.py"
+      ]
+    },
+    "data/config": {
+      "path": "data/config",
+      "purpose": "Configuration files",
+      "fileCount": 2,
+      "lastAccessed": 1775837567851,
+      "keyFiles": [
+        "dropdowns.json",
+        "models.json"
+      ]
+    },
+    "frontend/dist": {
+      "path": "frontend/dist",
+      "purpose": "Distribution/build output",
+      "fileCount": 4,
+      "lastAccessed": 1775837567851,
+      "keyFiles": [
+        "agents-lego.png",
+        "favicon.svg",
+        "icons.svg"
+      ]
+    },
+    "frontend/node_modules": {
+      "path": "frontend/node_modules",
+      "purpose": "Dependencies",
+      "fileCount": 1,
+      "lastAccessed": 1775837567852,
+      "keyFiles": []
+    },
+    "frontend/public": {
+      "path": "frontend/public",
+      "purpose": "Public files",
+      "fileCount": 3,
+      "lastAccessed": 1775837567852,
+      "keyFiles": [
+        "agents-lego.png",
+        "favicon.svg",
+        "icons.svg"
+      ]
+    },
+    "frontend/src": {
+      "path": "frontend/src",
+      "purpose": "Source code",
+      "fileCount": 4,
+      "lastAccessed": 1775837567853,
+      "keyFiles": [
+        "App.css",
+        "App.tsx",
+        "index.css"
+      ]
+    }
+  },
+  "hotPaths": [
+    {
+      "path": "backend/main.py",
+      "accessCount": 6,
+      "lastAccessed": 1775840368638,
+      "type": "file"
+    },
+    {
+      "path": "frontend/src/pages/ChatPage.tsx",
+      "accessCount": 6,
+      "lastAccessed": 1775840370813,
+      "type": "file"
+    },
+    {
+      "path": "backend/knowledge/vectordb.py",
+      "accessCount": 4,
+      "lastAccessed": 1775840422914,
+      "type": "file"
+    },
+    {
+      "path": "pyproject.toml",
+      "accessCount": 4,
+      "lastAccessed": 1775840424021,
+      "type": "file"
+    },
+    {
+      "path": "frontend/src/components/SourceSidebar.tsx",
+      "accessCount": 4,
+      "lastAccessed": 1775855568570,
+      "type": "file"
+    },
+    {
+      "path": "docs/status.md",
+      "accessCount": 3,
+      "lastAccessed": 1775856162682,
+      "type": "file"
+    },
+    {
+      "path": "frontend/src/components/KnowledgeStats.tsx",
+      "accessCount": 2,
+      "lastAccessed": 1775840370439,
+      "type": "file"
+    },
+    {
+      "path": "backend/memory/preloader.py",
+      "accessCount": 2,
+      "lastAccessed": 1775855519178,
+      "type": "file"
+    },
+    {
+      "path": "backend/knowledge/recording_policy.py",
+      "accessCount": 1,
+      "lastAccessed": 1775838189189,
+      "type": "file"
+    },
+    {
+      "path": "data/config/models.json",
+      "accessCount": 1,
+      "lastAccessed": 1775838190497,
+      "type": "file"
+    },
+    {
+      "path": "docs/scaffolding-plan-v3.md",
+      "accessCount": 1,
+      "lastAccessed": 1775838191665,
+      "type": "directory"
+    },
+    {
+      "path": "backend",
+      "accessCount": 1,
+      "lastAccessed": 1775840416702,
+      "type": "directory"
+    }
+  ],
+  "userDirectives": []
+}

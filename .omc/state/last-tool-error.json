@@ -1,0 +1,7 @@
+{
+  "tool_name": "Bash",
+  "tool_input_preview": "{\"command\":\"source .venv/bin/activate && python -c \\\"\\nfrom dbbuilder.src.db_builder.database import DatabaseManager\\nfrom dbbuilder.src.db_builder.embedding.embedder import BatchEmbedder\\nfrom dbbuil...",
+  "error": "Exit code 1\nTraceback (most recent call last):\n  File \"<string>\", line 3, in <module>\n  File \"/home/reliqbit/project/ZZZ/dbbuilder/src/db_builder/embedding/embedder.py\", line 14, in <module>\n    from db_builder.database import DatabaseManager\nModuleNotFoundError: No module named 'db_builder'\n[rerun: b21]",
+  "timestamp": "2026-04-10T16:44:26.192Z",
+  "retry_count": 1
+}

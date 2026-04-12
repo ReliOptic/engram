@@ -1,0 +1,24 @@
+{
+  "accounts": {
+    "SEC": {
+      "tools": {
+        "PROVE": {
+          "components": ["InCell", "Optics", "Stage", "SECS/GEM", "Software"]
+        },
+        "AIMS": {
+          "components": ["Optics", "Stage", "Software", "Detector"]
+        }
+      }
+    },
+    "TSMC": {
+      "tools": {
+        "PROVE": {
+          "components": ["InCell", "Optics", "Stage", "SECS/GEM", "Software"]
+        },
+        "AIMS": {
+          "components": ["Optics", "Stage", "Software", "Detector"]
+        }
+      }
+    }
+  }
+}

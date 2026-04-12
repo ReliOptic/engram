@@ -1,0 +1,20 @@
+{
+  "providers": {
+    "openrouter": {
+      "base_url": "https://openrouter.ai/api/v1",
+      "env_key": "OPENROUTER_API_KEY"
+    }
+  },
+  "roles": {
+    "embedding": {
+      "provider": "openrouter",
+      "model": "openai/text-embedding-3-small"
+    }
+  },
+  "cost_per_million_tokens": {
+    "openai/text-embedding-3-small": {
+      "input": 0.02,
+      "output": 0.0
+    }
+  }
+}

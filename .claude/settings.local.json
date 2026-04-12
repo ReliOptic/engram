@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(bash:*)",
+      "Bash(node:*)",
+      "Bash(chmod 755:*)",
+      "Bash(npm view:*)",
+      "Bash(claude mcp:*)",
+      "Bash(gh auth:*)"
+    ]
+  }
+}
