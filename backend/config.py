@@ -24,7 +24,11 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 OPENROUTER_BASE_URL = os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
 
 # App
-VERSION = "0.1.0"
+VERSION = "0.2.0"
+
+# Sync (optional — empty means standalone mode, no sync)
+SYNC_SERVER_URL = os.getenv("SYNC_SERVER_URL", "")
+SYNC_DEVICE_NAME = os.getenv("SYNC_DEVICE_NAME", os.getenv("COMPUTERNAME", "unknown"))
 
 
 def load_models_config() -> dict:
