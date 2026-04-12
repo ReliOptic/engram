@@ -20,9 +20,8 @@ export function Header({ wsStatus, syncStatus, syncPending }: HeaderProps) {
   return (
     <header style={styles.header}>
       <div style={styles.left}>
-        <span style={styles.logo}>ZEISS</span>
-        <span style={styles.title}>ZEMAS</span>
-        <span style={styles.subtitle}>EUV Multi-Agent Support</span>
+        <span style={styles.logo}>ZEMAS</span>
+        <span style={styles.subtitle}>Multi-Agent Support System</span>
       </div>
       <div style={styles.right}>
         <span

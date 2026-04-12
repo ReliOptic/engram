@@ -1,6 +1,6 @@
 """End-to-end test: WebSocket → Orchestrator → Real LLM → Response.
 
-Connects to the running backend via WebSocket, sends a real EUV support
+Connects to the running backend via WebSocket, sends a real technical support
 question, and verifies the full pipeline works with real LLM responses.
 """
 
@@ -18,14 +18,14 @@ async def run_e2e():
     async with websockets.connect(url) as ws:
         print("Connected!")
 
-        # Send a real EUV support question
+        # Send a real technical support question
         message = {
             "type": "user_message",
             "payload": {
-                "text": "We are experiencing E4012 stage synchronization error on PROVE tool after PM. What are the common causes and recommended troubleshooting steps?",
+                "text": "We are experiencing E4012 stage synchronization error on product after PM. What are the common causes and recommended troubleshooting steps?",
                 "silo": {
-                    "account": "SEC",
-                    "tool": "PROVE",
+                    "account": "ClientA",
+                    "tool": "ProductA",
                     "component": "Stage",
                 },
             },

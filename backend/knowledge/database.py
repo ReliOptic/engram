@@ -4,7 +4,7 @@ Complements ChromaDB with structured queries:
 - Case metadata: status, timestamps, account/tool/component filtering
 - Cost tracking: per-call token usage and USD cost
 - Session/message persistence for chat history
-- Structured queries: "all open SEC cases", "total cost this week"
+- Structured queries: "all open ClientA cases", "total cost this week"
 
 ChromaDB = similarity search. SQLite = structured queries.
 """

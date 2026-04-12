@@ -80,7 +80,7 @@ class TestExportImport:
             " contribution_type TEXT, addressed_to TEXT, created_at TEXT)"
         )
         conn.execute(
-            "INSERT INTO sessions VALUES ('s1','Test','SEC','PROVE','InCell',"
+            "INSERT INTO sessions VALUES ('s1','Test','ClientA','ProductA','Module1',"
             "'active','2026-01-01','2026-01-01',1)"
         )
         conn.execute(

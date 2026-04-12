@@ -86,18 +86,20 @@ async def test_config_loads_dropdowns_json(client):
     assert resp.status_code == 200
     data = resp.json()
     assert "accounts" in data
-    assert "SEC" in data["accounts"]
+    assert len(data["accounts"]) >= 1
 
 
 async def test_dropdowns_cascade(client):
     """Account → Tool → Component hierarchy is navigable."""
     resp = await client.get("/api/config/dropdowns")
     data = resp.json()
-    sec = data["accounts"]["SEC"]
-    assert "PROVE" in sec["tools"]
-    prove = sec["tools"]["PROVE"]
-    assert "InCell" in prove["components"]
-    assert "Optics" in prove["components"]
+    first_account = list(data["accounts"].keys())[0]
+    account = data["accounts"][first_account]
+    assert "tools" in account
+    first_tool = list(account["tools"].keys())[0]
+    tool = account["tools"][first_tool]
+    assert "components" in tool
+    assert len(tool["components"]) >= 1
 
 
 # --- LLM Client ---

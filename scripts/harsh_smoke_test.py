@@ -193,7 +193,7 @@ def test_vectordb():
 
     # 2-10. Unicode/special characters in document
     try:
-        unicode_doc = "한국어 테스트 🔧 ZEISS™ — «EUV» ñ ü ö ä 日本語 中文"
+        unicode_doc = "한국어 테스트 🔧 ZEMAS™ — «test» ñ ü ö ä 日本語 中文"
         db.upsert("case_records", {"id": "unicode-doc", "document": unicode_doc, "metadata": {"lang": "multi"}})
         result = db.get_by_id("case_records", "unicode-doc")
         assert result["document"] == unicode_doc
@@ -218,7 +218,7 @@ def test_vectordb():
 
     # 2-13. search_by_silo with missing component
     try:
-        results = db.search_by_silo("case_records", "test", account="SEC", tool="PROVE")
+        results = db.search_by_silo("case_records", "test", account="ClientA", tool="ProductA")
         record("vectordb", "search_by_silo without component", True)
     except Exception as e:
         record("vectordb", "search_by_silo without component", False, str(e))
@@ -286,8 +286,8 @@ def test_database():
 
         # 3-2. Duplicate case_id
         try:
-            db.create_case("DUP-001", "SEC", "PROVE", "Stage", "Test")
-            db.create_case("DUP-001", "SEC", "PROVE", "Stage", "Test")
+            db.create_case("DUP-001", "ClientA", "ProductA", "Module3", "Test")
+            db.create_case("DUP-001", "ClientA", "ProductA", "Module3", "Test")
             record("database", "duplicate case_id raises error", False, "No IntegrityError")
         except Exception:
             record("database", "duplicate case_id raises error", True)
@@ -310,7 +310,7 @@ def test_database():
         # 3-5. SQL injection attempt in case_id
         try:
             malicious_id = "'; DROP TABLE cases; --"
-            db.create_case(malicious_id, "SEC", "PROVE", "Stage", "SQLi test")
+            db.create_case(malicious_id, "ClientA", "ProductA", "Module3", "SQLi test")
             result = db.get_case(malicious_id)
             assert result is not None
             all_cases = db.list_cases()
@@ -328,9 +328,9 @@ def test_database():
 
         # 3-7. Unicode in case data
         try:
-            db.create_case("KR-001", "삼성", "PROVE", "스테이지", "한국어 테스트 케이스")
+            db.create_case("KR-001", "TestClient", "ProductA", "Module3", "한국어 테스트 케이스")
             result = db.get_case("KR-001")
-            assert result["account"] == "삼성"
+            assert result["account"] == "TestClient"
             assert result["title"] == "한국어 테스트 케이스"
             record("database", "unicode case data preserved", True)
         except Exception as e:
@@ -339,7 +339,7 @@ def test_database():
         # 3-8. Very long title
         try:
             long_title = "A" * 10_000
-            db.create_case("LONG-001", "SEC", "PROVE", "Stage", long_title)
+            db.create_case("LONG-001", "ClientA", "ProductA", "Module3", long_title)
             result = db.get_case("LONG-001")
             assert len(result["title"]) == 10_000
             record("database", "10K char title preserved", True)
@@ -366,7 +366,7 @@ def test_database():
         try:
             t0 = time.time()
             for i in range(500):
-                db.create_case(f"STRESS-{i:04d}", "SEC", "PROVE", "Stage", f"Stress case {i}")
+                db.create_case(f"STRESS-{i:04d}", "ClientA", "ProductA", "Module3", f"Stress case {i}")
             elapsed = time.time() - t0
             count = len(db.list_cases(limit=9999))
             record("database", f"500 cases created ({elapsed:.2f}s), total={count}", elapsed < 10)
@@ -537,9 +537,9 @@ def test_orchestrator():
     try:
         resp = AgentResponse(
             agent="analyzer", contribution_type="NEW_EVIDENCE",
-            contribution_detail="Found case SEC-2025-0142 with similar E4012 error after PM",
+            contribution_detail="Found case ClientA-2025-0142 with similar E4012 error after PM",
             addressed_to="@Finder",
-            content="Based on case SEC-2025-0142, the E4012 error commonly occurs after PM when the stage encoder calibration parameters are not properly restored. The resolution involved re-running the encoder offset calibration procedure per chapter 8.3.",
+            content="Based on case ClientA-2025-0142, the E4012 error commonly occurs after PM when the stage encoder calibration parameters are not properly restored. The resolution involved re-running the encoder offset calibration procedure per chapter 8.3.",
         )
         is_valid = validate_contribution(resp, [])
         assert is_valid
@@ -658,7 +658,7 @@ def test_api_endpoints():
             record("api", "GET /api/cases returns list", r.status_code == 200 and isinstance(r.json(), list))
 
             # 7-6. Cases API with filters
-            r = await client.get("/api/cases", params={"account": "SEC", "status": "open", "limit": "5"})
+            r = await client.get("/api/cases", params={"account": "ClientA", "status": "open", "limit": "5"})
             record("api", "GET /api/cases with filters", r.status_code == 200)
 
             # 7-7. Upload — no file
@@ -781,7 +781,7 @@ def test_websocket():
             big_text = "A" * 100_000
             ws.send_text(json.dumps({
                 "type": "user_message",
-                "payload": {"text": big_text, "silo": {"account": "SEC", "tool": "PROVE", "component": "Stage"}},
+                "payload": {"text": big_text, "silo": {"account": "ClientA", "tool": "ProductA", "component": "Module3"}},
             }))
             data = json.loads(ws.receive_text())
             record("websocket", "100KB message accepted", data.get("type") == "status_update")
@@ -908,8 +908,8 @@ def test_dedup():
 
     # 10-2. run_light_sleep with near-dupes
     try:
-        dedup_db.upsert("case_records", {"id": "d1", "document": "Stage sync error on PROVE after PM calibration", "metadata": {"account": "SEC"}})
-        dedup_db.upsert("case_records", {"id": "d2", "document": "Stage sync error on PROVE after PM calibration procedure", "metadata": {"account": "SEC"}})
+        dedup_db.upsert("case_records", {"id": "d1", "document": "Module3 sync error on ProductA after PM calibration", "metadata": {"account": "ClientA"}})
+        dedup_db.upsert("case_records", {"id": "d2", "document": "Module3 sync error on ProductA after PM calibration procedure", "metadata": {"account": "ClientA"}})
         engine = DedupEngine(dedup_db)
         report = asyncio.run(engine.run_light_sleep("case_records"))
         record("dedup", f"light_sleep: {report.near_duplicates_found} near-dupes found", True)
@@ -932,9 +932,9 @@ def test_dedup():
     try:
         from backend.knowledge.graph import KnowledgeGraph, GraphNode, GraphEdge
         kg = KnowledgeGraph()
-        kg.add_node(GraphNode(id="PROVE", type="tool", label="PROVE"))
+        kg.add_node(GraphNode(id="ProductA", type="tool", label="ProductA"))
         kg.add_node(GraphNode(id="E4012", type="error", label="E4012"))
-        kg.add_edge(GraphEdge(source="PROVE", target="E4012", type="has_error", weight=0.9))
+        kg.add_edge(GraphEdge(source="ProductA", target="E4012", type="has_error", weight=0.9))
         data = kg.to_dict()
         assert len(data["nodes"]) == 2
         assert len(data["edges"]) == 1
@@ -946,9 +946,9 @@ def test_dedup():
     try:
         from backend.knowledge.graph import KnowledgeGraph, GraphNode, GraphEdge
         kg = KnowledgeGraph()
-        kg.add_node(GraphNode(id="PROVE", type="tool", label="PROVE"))
+        kg.add_node(GraphNode(id="ProductA", type="tool", label="ProductA"))
         kg.add_node(GraphNode(id="E4012", type="error", label="E4012"))
-        kg.add_edge(GraphEdge(source="PROVE", target="E4012", type="has_error", weight=0.95))
+        kg.add_edge(GraphEdge(source="ProductA", target="E4012", type="has_error", weight=0.95))
         exported = kg.to_dict()
         kg2 = KnowledgeGraph.from_dict(exported)
         assert kg2.node_count == 2
@@ -980,7 +980,7 @@ def test_preloader():
     # 11-1. Preload from empty DB
     try:
         preloader = SessionPreloader(pre_db)
-        ctx = asyncio.run(preloader.build_context("SEC", "PROVE", "Stage", "E4012 error"))
+        ctx = asyncio.run(preloader.build_context("ClientA", "ProductA", "Module3", "E4012 error"))
         record("preloader", "empty DB preload", True)
     except Exception as e:
         record("preloader", "empty DB preload", False, str(e))
@@ -990,11 +990,11 @@ def test_preloader():
         for i in range(5):
             pre_db.upsert("case_records", {
                 "id": f"pre-{i}",
-                "document": f"Case record {i} about PROVE stage issue " * 50,
-                "metadata": {"account": "SEC", "tool": "PROVE", "silo_key": "SEC_PROVE_Stage"},
+                "document": f"Case record {i} about ProductA stage issue " * 50,
+                "metadata": {"account": "ClientA", "tool": "ProductA", "silo_key": "SEC_PROVE_Stage"},
             })
         preloader = SessionPreloader(pre_db)
-        ctx = asyncio.run(preloader.build_context("SEC", "PROVE", "Stage", "stage error"))
+        ctx = asyncio.run(preloader.build_context("ClientA", "ProductA", "Module3", "stage error"))
         prompt_text = ctx.to_prompt_text()
         assert len(prompt_text) <= 40_000
         record("preloader", f"context fits 40K ({len(prompt_text)} chars)", True)

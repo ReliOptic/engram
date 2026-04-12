@@ -159,7 +159,7 @@ class VectorDB:
             collection_name: Collection to search.
             query: Query text.
             n_results: Max results to return.
-            where: ChromaDB metadata filter (e.g., {"account": "SEC"}).
+            where: ChromaDB metadata filter (e.g., {"account": "ClientA"}).
 
         Returns:
             List of dicts with keys: id, document, metadata, distance.
@@ -208,9 +208,9 @@ class VectorDB:
         Args:
             collection_name: Collection to search.
             query: Query text.
-            account: Account name (e.g., "SEC").
-            tool: Tool name (e.g., "PROVE").
-            component: Optional component filter (e.g., "InCell").
+            account: Account name (e.g., "Client A").
+            tool: Tool name (e.g., "Product A").
+            component: Optional component filter (e.g., "Module 1").
             n_results: Max results.
 
         Returns:

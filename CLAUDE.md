@@ -1,14 +1,15 @@
-# ZEMAS — ZEISS EUV Multi-Agent Support System
+# ZEMAS — Multi-Agent Support System
 
 > **FIRST THING**: Read `docs/status.md` at the start of every new session to understand project state before doing anything else.
 
 ## Project Overview
-ZEMAS is a multi-agent AI support system for ZEISS EUV lithography equipment (PROVE, AIMS).
+ZEMAS is an open-source multi-agent AI support system for technical troubleshooting.
 Three specialized agents (Analyzer, Finder, Reviewer) collaborate through an orchestrated discussion
-to diagnose equipment issues, find relevant past cases, and validate solutions against official procedures.
+to diagnose issues, find relevant past cases, and validate solutions against official procedures.
 
-**Codename**: ZEMAS
-**Author**: Kiwon (Application Engineer, ZEISS Korea)
+Designed for field engineers, support teams, and anyone who solves recurring technical problems
+and wants their solutions to accumulate as searchable knowledge.
+
 **Master spec**: `docs/scaffolding-plan-v3.md` (single source of truth)
 
 ## Core Principles

@@ -71,7 +71,7 @@ def create_app() -> FastAPI:
     """Factory function for creating the FastAPI app."""
     app = FastAPI(
         title="ZEMAS",
-        description="ZEISS EUV Multi-Agent Support System",
+        description="Multi-Agent Support System",
         version=VERSION,
     )
 
@@ -393,6 +393,47 @@ def create_app() -> FastAPI:
             json.dump(body, f, indent=2)
         app.state.dropdowns_config = body
         return {"ok": True}
+
+    @app.post("/api/settings/save-api-key")
+    async def save_api_key(body: TestConnectionRequest):
+        """Save API key to .env file so it persists across restarts.
+
+        This is the in-app key setup flow: user enters key in Settings,
+        it gets tested and saved to .env without manual file editing.
+        """
+        env_path = Path(__file__).parent.parent / ".env"
+        env_var = "OPENROUTER_API_KEY" if body.provider == "openrouter" else "OPENAI_API_KEY"
+
+        # Read existing .env (or create from template)
+        if env_path.exists():
+            lines = env_path.read_text().splitlines()
+        else:
+            template = Path(__file__).parent.parent / ".env.example"
+            lines = template.read_text().splitlines() if template.exists() else []
+
+        # Update or append the key
+        updated = False
+        new_lines = []
+        for line in lines:
+            if line.startswith(f"{env_var}=") or line.startswith(f"# {env_var}="):
+                new_lines.append(f"{env_var}={body.api_key}")
+                updated = True
+            else:
+                new_lines.append(line)
+        if not updated:
+            new_lines.append(f"{env_var}={body.api_key}")
+
+        env_path.write_text("\n".join(new_lines) + "\n")
+
+        # Update runtime config
+        import os
+        os.environ[env_var] = body.api_key
+        if body.provider == "openrouter":
+            _cfg.OPENROUTER_API_KEY = body.api_key
+        elif body.provider == "openai":
+            _cfg.OPENAI_API_KEY = body.api_key
+
+        return {"ok": True, "saved_to": str(env_path)}
 
     @app.post("/api/settings/test-connection")
     async def test_connection(body: TestConnectionRequest):

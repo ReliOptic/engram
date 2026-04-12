@@ -95,8 +95,8 @@ class SessionPreloader:
         """Build session context by searching VectorDB.
 
         Args:
-            account: Customer account (e.g., "SEC").
-            tool: Tool type (e.g., "PROVE").
+            account: Customer account (e.g., "Client A").
+            tool: Tool type (e.g., "Product A").
             component: Component (e.g., "InCell").
             query: User's initial query text.
             max_silo: Max same-silo cases.

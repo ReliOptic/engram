@@ -35,7 +35,7 @@ export function ChatTimeline({ messages, isProcessing }: ChatTimelineProps) {
       <div style={styles.empty}>
         <div style={styles.emptyIcon}>💬</div>
         <p style={styles.emptyText}>
-          Start a conversation by describing your EUV equipment issue below.
+          Start a conversation by describing your issue below.
         </p>
       </div>
     );
@@ -165,7 +165,7 @@ const styles: Record<string, React.CSSProperties> = {
     alignSelf: 'flex-start',
     maxWidth: '85%',
   },
-  // User bubble — right-aligned, ZEISS blue
+  // User bubble — right-aligned, primary blue
   userBubbleWrapper: {
     display: 'flex',
     justifyContent: 'flex-end',

@@ -19,16 +19,16 @@ async def test_create_case(db):
     """케이스 생성 후 ID로 조회 가능."""
     case_id = db.create_case(
         case_id="CASE-2026-0042",
-        account="SEC",
-        tool="PROVE",
-        component="InCell",
+        account="ClientA",
+        tool="ProductA",
+        component="Module1",
         title="PRV-4412 3nm offset post-PM",
     )
     assert case_id == "CASE-2026-0042"
 
     case = db.get_case("CASE-2026-0042")
     assert case is not None
-    assert case["account"] == "SEC"
+    assert case["account"] == "ClientA"
     assert case["status"] == "open"
 
 
@@ -36,9 +36,9 @@ async def test_close_case(db):
     """케이스 종료 시 status=closed, resolution 기록."""
     db.create_case(
         case_id="CASE-2026-0042",
-        account="SEC",
-        tool="PROVE",
-        component="InCell",
+        account="ClientA",
+        tool="ProductA",
+        component="Module1",
         title="PRV-4412 offset",
     )
     db.close_case("CASE-2026-0042", resolution="TIS recalibration applied")
@@ -51,19 +51,19 @@ async def test_close_case(db):
 
 async def test_list_cases_by_account(db):
     """특정 account의 케이스만 필터링."""
-    db.create_case(case_id="C001", account="SEC", tool="PROVE", component="InCell", title="Issue 1")
-    db.create_case(case_id="C002", account="TSMC", tool="AIMS", component="Optics", title="Issue 2")
-    db.create_case(case_id="C003", account="SEC", tool="AIMS", component="Stage", title="Issue 3")
+    db.create_case(case_id="C001", account="ClientA", tool="ProductA", component="Module1", title="Issue 1")
+    db.create_case(case_id="C002", account="ClientB", tool="ProductB", component="Module2", title="Issue 2")
+    db.create_case(case_id="C003", account="ClientA", tool="ProductB", component="Module3", title="Issue 3")
 
-    sec_cases = db.list_cases(account="SEC")
+    sec_cases = db.list_cases(account="ClientA")
     assert len(sec_cases) == 2
-    assert all(c["account"] == "SEC" for c in sec_cases)
+    assert all(c["account"] == "ClientA" for c in sec_cases)
 
 
 async def test_list_open_cases(db):
     """열린 케이스만 조회."""
-    db.create_case(case_id="C001", account="SEC", tool="PROVE", component="InCell", title="Open")
-    db.create_case(case_id="C002", account="SEC", tool="PROVE", component="Optics", title="Closed")
+    db.create_case(case_id="C001", account="ClientA", tool="ProductA", component="Module1", title="Open")
+    db.create_case(case_id="C002", account="ClientA", tool="ProductA", component="Module2", title="Closed")
     db.close_case("C002", resolution="Fixed")
 
     open_cases = db.list_cases(status="open")

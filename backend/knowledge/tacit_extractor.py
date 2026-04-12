@@ -13,40 +13,40 @@ import json
 from backend.utils.llm_client import LLMClient
 
 TACIT_EXTRACTION_PROMPT = """
-아래는 ZEISS EUV 장비 기술지원 에이전트와 AE/SE 사이의 대화 기록입니다.
+Below is a conversation between support agents and a user.
 
-이 대화에서 **매뉴얼이나 공식 문서에는 없지만, 현장 경험에서만 알 수 있는
-판단, 절차, 맥락**을 추출해주세요.
+Extract **tacit knowledge** — insights that are NOT in official documentation
+but come from field experience, practical judgment, or contextual awareness.
 
-추출 기준:
-- 공식 절차에서 벗어난 현장 판단 (예: "시간 부족으로 TIS 스킵")
-- 고객사별 특수 조건 (예: "SEC에서는 이 모드를 선호함")
-- 에러 코드의 비공식 해석 (예: "PRV-4412는 보통 PM 후에 나오는데...")
-- 장비 간 개체차이 (예: "m106은 stage drift가 좀 있음")
-- 이전 경험 기반 우선순위 판단 (예: "이건 TIS부터 해봐야 돼")
+Extraction criteria:
+- Field decisions that deviate from standard procedure (e.g., "skipped step X due to time constraints")
+- Client-specific conditions (e.g., "this client prefers mode Y")
+- Unofficial interpretation of error codes (e.g., "error X usually appears after maintenance")
+- Equipment/system-specific quirks (e.g., "unit #106 has some drift")
+- Experience-based priority judgments (e.g., "always check X before Y")
 
-추출하지 말 것:
-- 매뉴얼에 명시된 표준 절차
-- 인사말, 확인 요청 등 업무 외 대화
-- 에이전트가 VectorDB/wiki에서 검색해온 정보 (이미 기록됨)
+Do NOT extract:
+- Standard procedures documented in manuals
+- Greetings, confirmations, or non-technical conversation
+- Information the agent retrieved from the knowledge base (already recorded)
 
-JSON 배열로 반환:
+Return a JSON array:
 [
     {
-        "signal": "SE가 PM 중 시간 압박으로 TIS recalibration을 스킵함",
+        "signal": "Engineer skipped recalibration due to time pressure",
         "type": "field_decision",
-        "source_speaker": "kiwon",
-        "context": "post_PM, SEC PROVE LE#3",
+        "source_speaker": "user",
+        "context": "post-maintenance, Client A Product A",
         "confidence": 0.85,
-        "related_procedure": "Ch.8.3 TIS recalibration"
+        "related_procedure": "Section 8.3 Recalibration"
     }
 ]
 
-type은 다음 중 하나: field_decision | customer_specific | unofficial_interpretation | tool_specific | priority_judgment
+type must be one of: field_decision | customer_specific | unofficial_interpretation | tool_specific | priority_judgment
 
-대화에서 암묘지가 발견되지 않으면 빈 배열 []을 반환하세요.
+If no tacit knowledge is found, return an empty array [].
 
-대화 기록:
+Conversation:
 {conversation_text}
 """.strip()
 

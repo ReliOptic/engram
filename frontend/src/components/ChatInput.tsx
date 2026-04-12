@@ -49,22 +49,16 @@ export function ChatInput({ onSend, disabled, isProcessing, onStop }: ChatInputP
         // Fallback: use mock dropdown data if backend is not available
         const mock: DropdownConfig = {
           accounts: {
-            SEC: {
+            'Demo Client': {
               tools: {
-                PROVE: { components: ['InCell', 'Optics', 'Stage', 'SECS/GEM', 'Software'] },
-                AIMS: { components: ['Optics', 'Stage', 'Software', 'Detector'] },
-              },
-            },
-            TSMC: {
-              tools: {
-                PROVE: { components: ['InCell', 'Optics', 'Stage', 'SECS/GEM', 'Software'] },
-                AIMS: { components: ['Optics', 'Stage', 'Software', 'Detector'] },
+                'Product A': { components: ['Module 1', 'Module 2', 'Module 3'] },
+                'Product B': { components: ['Module 1', 'Module 2'] },
               },
             },
           },
         };
         setDropdowns(mock);
-        setSilo({ account: 'SEC', tool: 'PROVE', component: 'InCell' });
+        setSilo({ account: 'Demo Client', tool: 'Product A', component: 'Module 1' });
       });
   }, []);
 
@@ -215,7 +209,7 @@ export function ChatInput({ onSend, disabled, isProcessing, onStop }: ChatInputP
         </button>
         <textarea
           style={styles.textarea}
-          placeholder="Describe your EUV equipment issue..."
+          placeholder="Describe your issue..."
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={handleKeyDown}

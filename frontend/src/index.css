@@ -1,8 +1,8 @@
-/* ZEISS Design System — CSS Variables */
+/* ZEMAS Design System — CSS Variables */
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
 
 :root {
-  /* Primary — ZEISS Reflex Blue C */
+  /* Primary brand colors — customize for your organization */
   --zeiss-blue: #141E8C;
   --zeiss-blue-light: #1A2BA8;
   --zeiss-blue-dark: #0E1566;

@@ -28,11 +28,11 @@ def _make_conversation(text):
 async def test_exact_duplicate_removed(vectordb, dedup):
     """같은 case_id → 하나만 유지."""
     meta = {
-        "case_id": "SEC-001",
-        "account": "SEC",
-        "tool": "PROVE",
-        "component": "InCell",
-        "title": "InCell error",
+        "case_id": "ClientA-001",
+        "account": "ClientA",
+        "tool": "ProductA",
+        "component": "Module1",
+        "title": "Module1 error",
         "resolution": "Fixed",
     }
     conv = _make_conversation("Analyzer found root cause in TIS calibration")
@@ -56,19 +56,19 @@ async def test_semantic_near_duplicate_detected(vectordb, dedup):
     """cosine similarity > 0.92 → flagged as near-duplicate."""
     # Two very similar cases
     meta1 = {
-        "case_id": "SEC-001",
-        "account": "SEC",
-        "tool": "PROVE",
-        "component": "InCell",
-        "title": "InCell DB registration offset after PM",
+        "case_id": "ClientA-001",
+        "account": "ClientA",
+        "tool": "ProductA",
+        "component": "Module1",
+        "title": "Module1 DB registration offset after PM",
         "resolution": "TIS recalibration resolved",
     }
     meta2 = {
-        "case_id": "SEC-002",
-        "account": "SEC",
-        "tool": "PROVE",
-        "component": "InCell",
-        "title": "InCell DB registration offset post preventive maintenance",
+        "case_id": "ClientA-002",
+        "account": "ClientA",
+        "tool": "ProductA",
+        "component": "Module1",
+        "title": "Module1 DB registration offset post preventive maintenance",
         "resolution": "TIS recalibration fixed the issue",
     }
 
@@ -87,10 +87,10 @@ async def test_semantic_near_duplicate_detected(vectordb, dedup):
 async def test_conversation_trace_never_merged(vectordb, dedup):
     """Type B chunk는 절대 머징하지 않음."""
     meta = {
-        "case_id": "SEC-001",
-        "account": "SEC",
-        "tool": "PROVE",
-        "component": "InCell",
+        "case_id": "ClientA-001",
+        "account": "ClientA",
+        "tool": "ProductA",
+        "component": "Module1",
     }
     conv = _make_conversation("Detailed trace conversation")
 

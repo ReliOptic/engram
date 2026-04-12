@@ -34,8 +34,8 @@ def _manual_chunk(
     chunk_id: str,
     text: str,
     *,
-    tool_family: str = "PROVE",
-    source_file: str = "PROVE_manual_v3.pdf",
+    tool_family: str = "ProductA",
+    source_file: str = "ProductA_manual_v3.pdf",
     page_number: int = 42,
     section_title: str = "Chapter 8 > 8.3 TIS Recalibration",
 ) -> dict:
@@ -66,7 +66,7 @@ class TestManualsCollection:
         """Basic write-then-read works for manuals."""
         vectordb.upsert(
             "manuals",
-            _manual_chunk("m-001", "TIS recalibration procedure for PROVE step 4"),
+            _manual_chunk("m-001", "TIS recalibration procedure for ProductA step 4"),
         )
         results = vectordb.search("manuals", "TIS recalibration", n_results=5)
         assert len(results) == 1
@@ -79,18 +79,18 @@ class TestManualsCollection:
         vectordb.upsert_batch(
             "manuals",
             [
-                _manual_chunk("m-p1", "PROVE calibration", tool_family="PROVE"),
-                _manual_chunk("m-p2", "PROVE stage alignment", tool_family="PROVE"),
-                _manual_chunk("m-a1", "AIMS detector alignment", tool_family="AIMS"),
+                _manual_chunk("m-p1", "ProductA calibration", tool_family="ProductA"),
+                _manual_chunk("m-p2", "ProductA stage alignment", tool_family="ProductA"),
+                _manual_chunk("m-a1", "ProductB detector alignment", tool_family="ProductB"),
             ],
         )
         prove_results = vectordb.search(
             "manuals", "calibration",
-            where={"tool_family": "PROVE"},
+            where={"tool_family": "ProductA"},
             n_results=10,
         )
         assert len(prove_results) == 2
-        assert all(r["metadata"]["tool_family"] == "PROVE" for r in prove_results)
+        assert all(r["metadata"]["tool_family"] == "ProductA" for r in prove_results)
 
     def test_embedding_dimension_is_1536(self, vectordb: VectorDB):
         """The whole integration rests on everyone agreeing on 1536 dims.
@@ -112,40 +112,40 @@ class TestPreloaderManuals:
         vectordb.upsert_batch(
             "manuals",
             [
-                _manual_chunk("m-1", "PROVE TIS recalibration procedure",
-                              tool_family="PROVE"),
-                _manual_chunk("m-2", "PROVE stage leveling check",
-                              tool_family="PROVE"),
-                _manual_chunk("m-3", "AIMS detector alignment guide",
-                              tool_family="AIMS"),
+                _manual_chunk("m-1", "ProductA TIS recalibration procedure",
+                              tool_family="ProductA"),
+                _manual_chunk("m-2", "ProductA stage leveling check",
+                              tool_family="ProductA"),
+                _manual_chunk("m-3", "ProductB detector alignment guide",
+                              tool_family="ProductB"),
             ],
         )
 
         preloader = SessionPreloader(vectordb)
         ctx = await preloader.build_context(
-            account="SEC",
-            tool="PROVE",
-            component="InCell",
+            account="ClientA",
+            tool="ProductA",
+            component="Module1",
             query="TIS recalibration",
             max_manuals=5,
         )
 
-        # All PROVE manuals should come back, no AIMS
+        # All ProductA manuals should come back, no ProductB
         assert len(ctx.manual_entries) == 2
         tool_families = {m["metadata"]["tool_family"] for m in ctx.manual_entries}
-        assert tool_families == {"PROVE"}
+        assert tool_families == {"ProductA"}
 
     async def test_preloader_manuals_empty_when_no_match(self, vectordb: VectorDB):
-        """No PROVE manuals — manual_entries stays empty, no crash."""
+        """No ProductA manuals — manual_entries stays empty, no crash."""
         vectordb.upsert(
             "manuals",
-            _manual_chunk("m-a1", "AIMS detector guide", tool_family="AIMS"),
+            _manual_chunk("m-a1", "ProductB detector guide", tool_family="ProductB"),
         )
         preloader = SessionPreloader(vectordb)
         ctx = await preloader.build_context(
-            account="SEC",
-            tool="PROVE",
-            component="InCell",
+            account="ClientA",
+            tool="ProductA",
+            component="Module1",
             query="anything",
             max_manuals=5,
         )

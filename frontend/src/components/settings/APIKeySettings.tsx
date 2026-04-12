@@ -53,7 +53,8 @@ export function APIKeySettings() {
     <div>
       <h2 style={styles.heading}>API Keys</h2>
       <p style={styles.description}>
-        Test your API keys against each provider. Keys are only sent to the backend for testing and are not stored.
+        Enter your API key, test it, and save. The key is stored in <code>.env</code> on your machine
+        and persists across restarts. No data leaves your machine except API calls to the provider.
       </p>
 
       <div style={styles.cards}>
@@ -81,6 +82,29 @@ export function APIKeySettings() {
                 disabled={key.status === 'testing'}
               >
                 {key.status === 'testing' ? 'Testing...' : 'Test'}
+              </button>
+              <button
+                style={{
+                  ...styles.testBtn,
+                  background: key.status === 'valid' ? 'var(--zeiss-blue)' : 'var(--bg-primary)',
+                  color: key.status === 'valid' ? 'white' : 'var(--text-primary)',
+                }}
+                onClick={async () => {
+                  if (!key.value.trim()) return;
+                  try {
+                    const resp = await fetch('/api/settings/save-api-key', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ provider: key.provider, api_key: key.value }),
+                    });
+                    const data = await resp.json();
+                    if (data.ok) addToast(`${key.label} saved to .env`, 'success');
+                    else addToast(`Save failed: ${data.error}`, 'error');
+                  } catch { addToast('Network error', 'error'); }
+                }}
+                disabled={!key.value.trim()}
+              >
+                Save
               </button>
             </div>
           </div>

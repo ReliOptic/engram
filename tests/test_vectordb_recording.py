@@ -65,9 +65,9 @@ def case_metadata():
     """Sample case metadata."""
     return {
         "case_id": "CASE-2026-0042",
-        "account": "SEC",
-        "tool": "PROVE",
-        "component": "InCell",
+        "account": "ClientA",
+        "tool": "ProductA",
+        "component": "Module1",
         "title": "PRV-4412 3nm offset post-PM",
         "resolution": "TIS recalibration + ref mark verification",
     }
@@ -112,17 +112,17 @@ async def test_silo_key_format(vectordb, sample_conversation, case_metadata):
     """silo key가 {account}_{tool}_{component} 형식."""
     chunk = build_type_a_chunk(case_metadata, sample_conversation)
     silo_key = chunk["metadata"]["silo_key"]
-    assert silo_key == "SEC_PROVE_InCell"
+    assert silo_key == "ClientA_ProductA_Module1"
 
 
 async def test_weekly_creates_type_c():
     """xlsx 행 데이터 → Type C (weekly_report) chunk 생성."""
     row_data = {
         "cw": "CW15",
-        "account": "SEC",
+        "account": "ClientA",
         "fob": "LE#3",
-        "tool": "PROVE",
-        "title": "SECS/GEM 300 bug after SW 5.6.2 upgrade",
+        "tool": "ProductA",
+        "title": "Protocol 300 bug after SW 5.6.2 upgrade",
         "status": "Open",
         "next_plan": "Rollback to 5.6.1 if patch unavailable",
     }
@@ -131,8 +131,8 @@ async def test_weekly_creates_type_c():
 
     assert chunk["metadata"]["chunk_type"] == "weekly_report"
     assert chunk["metadata"]["cw"] == "CW15"
-    assert chunk["metadata"]["silo_key"] == "SEC_PROVE_SECS/GEM"
-    assert "SECS/GEM 300 bug" in chunk["document"]
+    assert chunk["metadata"]["silo_key"] == "ClientA_ProductA_Protocol"
+    assert "Protocol 300 bug" in chunk["document"]
 
 
 async def test_weekly_issue_threading(vectordb):
@@ -140,19 +140,19 @@ async def test_weekly_issue_threading(vectordb):
     # Same issue across CW14 and CW15
     row_cw14 = {
         "cw": "CW14",
-        "account": "SEC",
+        "account": "ClientA",
         "fob": "LE#3",
-        "tool": "PROVE",
-        "title": "SECS/GEM 300 bug after SW upgrade",
+        "tool": "ProductA",
+        "title": "Protocol 300 bug after SW upgrade",
         "status": "Open",
         "next_plan": "Investigating",
     }
     row_cw15 = {
         "cw": "CW15",
-        "account": "SEC",
+        "account": "ClientA",
         "fob": "LE#3",
-        "tool": "PROVE",
-        "title": "SECS/GEM 300 bug after SW 5.6.2 upgrade",
+        "tool": "ProductA",
+        "title": "Protocol 300 bug after SW 5.6.2 upgrade",
         "status": "Open",
         "next_plan": "Rollback to 5.6.1",
     }
@@ -165,8 +165,8 @@ async def test_weekly_issue_threading(vectordb):
 
     # Both should share an issue_thread_id based on account+tool+similar title
     results = vectordb.search(
-        "weekly", "SECS/GEM bug", n_results=5,
-        where={"account": "SEC"},
+        "weekly", "Protocol bug", n_results=5,
+        where={"account": "ClientA"},
     )
     assert len(results) >= 2
 

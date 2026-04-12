@@ -45,9 +45,9 @@ async def test_knowledge_stats_with_cases(client):
     db = ZemasDB(str(db_path))
     db.create_case(
         case_id="TEST-001",
-        account="SEC",
-        tool="PROVE",
-        component="InCell",
+        account="ClientA",
+        tool="ProductA",
+        component="Module1",
         title="Test case for stats",
     )
     db.close()

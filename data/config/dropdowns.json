@@ -1,22 +1,22 @@
 {
   "accounts": {
-    "SEC": {
+    "Demo Client": {
       "tools": {
-        "PROVE": {
-          "components": ["InCell", "Optics", "Stage", "SECS/GEM", "Software"]
+        "Product A": {
+          "components": [
+            "Module 1",
+            "Module 2",
+            "Module 3",
+            "Software",
+            "Integration"
+          ]
         },
-        "AIMS": {
-          "components": ["Optics", "Stage", "Software", "Detector"]
-        }
-      }
-    },
-    "TSMC": {
-      "tools": {
-        "PROVE": {
-          "components": ["InCell", "Optics", "Stage", "SECS/GEM", "Software"]
-        },
-        "AIMS": {
-          "components": ["Optics", "Stage", "Software", "Detector"]
+        "Product B": {
+          "components": [
+            "Module 1",
+            "Module 2",
+            "Software"
+          ]
         }
       }
     }

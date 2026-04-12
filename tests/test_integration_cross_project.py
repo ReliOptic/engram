@@ -79,8 +79,8 @@ class TestCrossProjectManuals:
             metadata={"hnsw:space": "cosine"},
         )
         # Pre-compute embeddings the same way DB Builder does:
-        chunks = [_precomputed_chunk(i, "PROVE") for i in range(5)] + [
-            _precomputed_chunk(i + 100, "AIMS") for i in range(3)
+        chunks = [_precomputed_chunk(i, "ProductA") for i in range(5)] + [
+            _precomputed_chunk(i + 100, "ProductB") for i in range(3)
         ]
         docs = [c["document"] for c in chunks]
         ids = [c["id"] for c in chunks]
@@ -104,21 +104,21 @@ class TestCrossProjectManuals:
         # Count sanity: ZEMAS sees the same chunks DB Builder wrote.
         assert zemas_vdb.count("manuals") == 8
 
-        # Query with tool_family filter — must return PROVE only.
+        # Query with tool_family filter — must return ProductA only.
         prove_results = zemas_vdb.search(
             "manuals",
             "calibration",
-            where={"tool_family": "PROVE"},
+            where={"tool_family": "ProductA"},
             n_results=10,
         )
         assert len(prove_results) == 5
-        assert all(r["metadata"]["tool_family"] == "PROVE" for r in prove_results)
+        assert all(r["metadata"]["tool_family"] == "ProductA" for r in prove_results)
 
-        # And AIMS isolation works too.
+        # And ProductB isolation works too.
         aims_results = zemas_vdb.search(
             "manuals",
             "calibration",
-            where={"tool_family": "AIMS"},
+            where={"tool_family": "ProductB"},
             n_results=10,
         )
         assert len(aims_results) == 3

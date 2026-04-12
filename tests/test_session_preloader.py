@@ -45,38 +45,38 @@ def _make_case(case_id, account, tool, component, title, resolution):
 
 async def test_preloads_same_tool_cases(vectordb, preloader):
     """같은 account+tool의 최근 케이스 로딩."""
-    # Insert several cases for SEC PROVE
+    # Insert several cases for ClientA ProductA
     for i in range(5):
-        chunk = _make_case(f"SEC-{i}", "SEC", "PROVE", "InCell",
-                           f"InCell error case {i}", f"Fixed via step {i}")
+        chunk = _make_case(f"ClientA-{i}", "ClientA", "ProductA", "Module1",
+                           f"Module1 error case {i}", f"Fixed via step {i}")
         vectordb.upsert("case_records", chunk)
 
     # Also insert a different account case
-    other = _make_case("TSMC-1", "TSMC", "AIMS", "Optics",
-                       "AIMS optics drift", "Recalibrated")
+    other = _make_case("ClientB-1", "ClientB", "ProductB", "Module2",
+                       "ProductB optics drift", "Recalibrated")
     vectordb.upsert("case_records", other)
 
     context = await preloader.build_context(
-        account="SEC", tool="PROVE", component="InCell",
-        query="InCell DB registration offset",
+        account="ClientA", tool="ProductA", component="Module1",
+        query="Module1 DB registration offset",
     )
 
-    assert context.silo_cases  # Should have SEC PROVE cases
-    assert all("SEC" in c.get("metadata", {}).get("account", "")
+    assert context.silo_cases  # Should have ClientA ProductA cases
+    assert all("ClientA" in c.get("metadata", {}).get("account", "")
                for c in context.silo_cases)
 
 
 async def test_preloads_cross_silo(vectordb, preloader):
     """유사 이슈 cross-silo 검색."""
     # Insert cases in different silos with similar issues
-    for acc in ["SEC", "TSMC", "Intel"]:
-        chunk = _make_case(f"{acc}-offset", acc, "PROVE", "InCell",
+    for acc in ["ClientA", "ClientB", "ClientC"]:
+        chunk = _make_case(f"{acc}-offset", acc, "ProductA", "Module1",
                            "DB registration offset after PM",
                            "TIS recalibration resolved")
         vectordb.upsert("case_records", chunk)
 
     context = await preloader.build_context(
-        account="SEC", tool="PROVE", component="InCell",
+        account="ClientA", tool="ProductA", component="Module1",
         query="DB registration offset post-PM",
     )
 
@@ -87,14 +87,14 @@ async def test_preloads_cross_silo(vectordb, preloader):
 async def test_preload_fits_context(vectordb, preloader):
     """Pre-loaded context가 적절한 크기."""
     for i in range(20):
-        chunk = _make_case(f"SEC-{i}", "SEC", "PROVE", "InCell",
-                           f"Case {i}: various InCell issue",
+        chunk = _make_case(f"ClientA-{i}", "ClientA", "ProductA", "Module1",
+                           f"Case {i}: various Module1 issue",
                            f"Resolution {i}")
         vectordb.upsert("case_records", chunk)
 
     context = await preloader.build_context(
-        account="SEC", tool="PROVE", component="InCell",
-        query="InCell error troubleshooting",
+        account="ClientA", tool="ProductA", component="Module1",
+        query="Module1 error troubleshooting",
     )
 
     # Context text should be bounded
@@ -108,9 +108,9 @@ async def test_preloader_includes_manuals(vectordb, preloader):
     """Pre-loader should include manual entries in context."""
     chunk = {
         "id": "manual-prove-ch8",
-        "document": "Optical alignment procedure for PROVE InCell module.",
+        "document": "Optical alignment procedure for ProductA Module1 module.",
         "metadata": {
-            "tool_family": "PROVE",
+            "tool_family": "ProductA",
             "source_file": "UserManual.pdf",
             "section_title": "Chapter 8",
         },
@@ -118,7 +118,7 @@ async def test_preloader_includes_manuals(vectordb, preloader):
     vectordb.upsert("manuals", chunk)
 
     ctx = await preloader.build_context(
-        account="SEC", tool="PROVE", component="InCell",
+        account="ClientA", tool="ProductA", component="Module1",
         query="optical alignment",
     )
 

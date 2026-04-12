@@ -65,7 +65,7 @@ class SyncOpenRouterEmbeddingClient:
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
-            "HTTP-Referer": "https://zemas.zeiss.local",
+            "HTTP-Referer": "https://github.com/zemas",
             "X-Title": "ZEMAS",
         }
         payload = {"model": self.model, "input": texts}

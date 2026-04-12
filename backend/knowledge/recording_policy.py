@@ -185,12 +185,12 @@ def _infer_component_from_title(title: str) -> str:
     """Best-effort component inference from issue title."""
     title_lower = title.lower()
     component_keywords = {
-        "InCell": ["incell", "in-cell", "in cell"],
-        "Optics": ["optics", "optical", "lens", "mirror"],
-        "Stage": ["stage", "wafer stage", "reticle stage"],
-        "SECS/GEM": ["secs", "gem", "secs/gem", "300"],
-        "Software": ["software", "sw ", "firmware", "sw upgrade"],
-        "Detector": ["detector", "ccd", "sensor"],
+        "Module1": ["module1", "mod1"],
+        "Module2": ["module2", "mod2"],
+        "Module3": ["module3", "mod3"],
+        "Protocol": ["protocol", "comm"],
+        "Software": ["software", "sw"],
+        "Sensor": ["sensor", "detector"],
     }
     for component, keywords in component_keywords.items():
         if any(kw in title_lower for kw in keywords):
