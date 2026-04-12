@@ -16,8 +16,8 @@ from db_builder.config import (
 
 
 class TestLoadModelsJson:
-    def test_loads_valid_file(self, zemas_config_dir: Path):
-        models = load_models_json(zemas_config_dir)
+    def test_loads_valid_file(self, engram_config_dir: Path):
+        models = load_models_json(engram_config_dir)
         assert "providers" in models
         assert "roles" in models
         assert "embedding" in models["roles"]
@@ -28,8 +28,8 @@ class TestLoadModelsJson:
 
 
 class TestExtractEmbeddingConfig:
-    def test_extracts_model_and_provider(self, zemas_config_dir: Path):
-        models = load_models_json(zemas_config_dir)
+    def test_extracts_model_and_provider(self, engram_config_dir: Path):
+        models = load_models_json(engram_config_dir)
         emb = _extract_embedding_config(models)
 
         assert emb.model == "openai/text-embedding-3-small"
@@ -70,7 +70,7 @@ class TestDBBuilderConfig:
             raw_data_dir=tmp_path / "raw",
             chromadb_dir=tmp_path / "chroma",
             db_path=tmp_path / "test.db",
-            zemas_config_dir=tmp_path / "config",
+            engram_config_dir=tmp_path / "config",
         )
         assert cfg.raw_data_dir == tmp_path / "raw"
         assert cfg.chromadb_dir == tmp_path / "chroma"

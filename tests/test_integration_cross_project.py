@@ -1,13 +1,13 @@
-"""Cross-project integration test: DB Builder writes, ZEMAS reads.
+"""Cross-project integration test: DB Builder writes, Engram reads.
 
-Simulates the end-to-end flow that matters most for the ZEMAS ↔ DB Builder
+Simulates the end-to-end flow that matters most for the Engram ↔ DB Builder
 contract:
 
 1. DB Builder creates a ``manuals`` collection in a shared ``chroma_db``
    directory, using an ``OpenRouterEmbeddingFunction`` with a known
    ``name()``.
 2. DB Builder writes chunks with pre-computed 1536-dim embeddings.
-3. ZEMAS opens the same persist_dir with its own
+3. Engram opens the same persist_dir with its own
    ``OpenRouterEmbeddingFunction`` (same ``name()``) and issues a
    text-based query.
 4. ChromaDB must NOT raise a config-mismatch error. Results must come
@@ -57,12 +57,12 @@ def _precomputed_chunk(idx: int, tool_family: str) -> dict:
 
 
 class TestCrossProjectManuals:
-    def test_db_builder_writes_zemas_reads(self, tmp_path):
+    def test_db_builder_writes_engram_reads(self, tmp_path):
         """The full cross-project scenario in one test.
 
         Writer side: uses FakeEmbeddingFunction to pre-compute vectors
         (stand-in for DB Builder's explicit embeddings via OpenRouter).
-        Reader side: ZEMAS VectorDB with its own FakeEmbeddingFunction
+        Reader side: Engram VectorDB with its own FakeEmbeddingFunction
         (autouse fixture replaces the factory).
 
         Both sides MUST use the same EmbeddingFunction class name so
@@ -96,16 +96,16 @@ class TestCrossProjectManuals:
         # Sanity: writer sees all 8 chunks.
         assert writer_col.count() == 8
 
-        # ── Reader side (ZEMAS VectorDB) ───────────────────────────
+        # ── Reader side (Engram VectorDB) ───────────────────────────
         # Autouse conftest fixture already patches ``_default_embedding_function``
         # to return FakeEmbeddingFunction, so no explicit injection needed.
-        zemas_vdb = VectorDB(persist_dir=persist_dir)
+        engram_vdb = VectorDB(persist_dir=persist_dir)
 
-        # Count sanity: ZEMAS sees the same chunks DB Builder wrote.
-        assert zemas_vdb.count("manuals") == 8
+        # Count sanity: Engram sees the same chunks DB Builder wrote.
+        assert engram_vdb.count("manuals") == 8
 
         # Query with tool_family filter — must return ProductA only.
-        prove_results = zemas_vdb.search(
+        prove_results = engram_vdb.search(
             "manuals",
             "calibration",
             where={"tool_family": "ProductA"},
@@ -115,7 +115,7 @@ class TestCrossProjectManuals:
         assert all(r["metadata"]["tool_family"] == "ProductA" for r in prove_results)
 
         # And ProductB isolation works too.
-        aims_results = zemas_vdb.search(
+        aims_results = engram_vdb.search(
             "manuals",
             "calibration",
             where={"tool_family": "ProductB"},
@@ -127,7 +127,7 @@ class TestCrossProjectManuals:
         """Belt-and-suspenders: both sides expect 1536 dims.
 
         Regression guard for accidental model swaps. If DB Builder's
-        ``embedding_dimension`` drifts from ZEMAS's ``EMBEDDING_DIM``,
+        ``embedding_dimension`` drifts from Engram's ``EMBEDDING_DIM``,
         this test fails fast instead of failing silently later in
         cosine-distance math."""
         fake = FakeEmbeddingFunction()

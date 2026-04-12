@@ -1,4 +1,4 @@
-"""Deduplication engine for ZEMAS dreaming pipeline.
+"""Deduplication engine for Engram dreaming pipeline.
 
 Light Sleep stage: detect exact and near-duplicate chunks.
 - Exact duplicates: same ID (handled by upsert)

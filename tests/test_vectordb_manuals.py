@@ -1,6 +1,6 @@
 """Tests for manuals collection cross-project integration.
 
-Verifies that ZEMAS's VectorDB can correctly query the manuals
+Verifies that Engram's VectorDB can correctly query the manuals
 collection produced by DB Builder. The key risk this test guards
 against is a silent embedding-dimension mismatch (which used to be
 swallowed by a bare ``except`` in ``VectorDB.search``).
@@ -73,8 +73,8 @@ class TestManualsCollection:
         assert results[0]["id"] == "m-001"
 
     def test_tool_family_filter(self, vectordb: VectorDB):
-        """ZEMAS preloader filters manuals via ``where={'tool_family': tool}``.
-        If this ever stops working, every ZEMAS session pre-load will
+        """Engram preloader filters manuals via ``where={'tool_family': tool}``.
+        If this ever stops working, every Engram session pre-load will
         silently return zero manual hits."""
         vectordb.upsert_batch(
             "manuals",
@@ -97,7 +97,7 @@ class TestManualsCollection:
 
         This test exists so that if someone accidentally swaps embedding
         models (e.g., switches to MiniLM or a custom model), CI catches
-        it before DB Builder and ZEMAS silently diverge in production."""
+        it before DB Builder and Engram silently diverge in production."""
         fake = FakeEmbeddingFunction()
         vec = fake(["hello world"])[0]
         assert len(vec) == EMBEDDING_DIM == 1536
@@ -107,7 +107,7 @@ class TestPreloaderManuals:
     async def test_preloader_surfaces_manuals(self, vectordb: VectorDB):
         """End-to-end: preloader.build_context picks up manuals hits.
 
-        This is the exact path ZEMAS sessions use — if it returns an
+        This is the exact path Engram sessions use — if it returns an
         empty list, the finder/reviewer agents lose access to manuals."""
         vectordb.upsert_batch(
             "manuals",

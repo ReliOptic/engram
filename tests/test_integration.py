@@ -9,7 +9,7 @@ import pytest
 
 from backend.agents.orchestrator import AgentResponse, Orchestrator, OrchestratorResult
 from backend.knowledge.vectordb import VectorDB
-from backend.knowledge.database import ZemasDB
+from backend.knowledge.database import EngramDB
 from backend.memory.case_recorder import CaseRecorder
 from backend.memory.preloader import SessionPreloader
 
@@ -20,7 +20,7 @@ async def test_full_case_lifecycle():
     Type A + Type B stored → next session pre-loads context.
     """
     vectordb = VectorDB()  # ephemeral
-    db = ZemasDB(":memory:")
+    db = EngramDB(":memory:")
     recorder = CaseRecorder(vectordb, db)
 
     # Simulate orchestrator run with mock agent responses

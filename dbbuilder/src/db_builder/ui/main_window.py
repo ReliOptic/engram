@@ -48,7 +48,7 @@ class MainWindow(QMainWindow):
         config: DBBuilderConfig | None = None,
     ):
         super().__init__()
-        self.setWindowTitle("ZEMAS DB Builder")
+        self.setWindowTitle("Engram DB Builder")
         self.setMinimumSize(1000, 700)
         self.resize(1200, 800)
 
@@ -155,11 +155,10 @@ class MainWindow(QMainWindow):
 
         QMessageBox.about(
             self,
-            "About ZEMAS DB Builder",
-            "ZEMAS DB Builder v0.1.0\n\n"
+            "About Engram DB Builder",
+            "Engram DB Builder v0.1.0\n\n"
             "Knowledge Base Construction Pipeline\n"
-            "for ZEISS EUV Multi-Agent Support System.\n\n"
-            "Author: Kiwon (ZEISS Korea)",
+            "for Engram Multi-Agent Support System.",
         )
 
     def closeEvent(self, event):

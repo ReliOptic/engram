@@ -86,7 +86,7 @@ export function APIKeySettings() {
               <button
                 style={{
                   ...styles.testBtn,
-                  background: key.status === 'valid' ? 'var(--zeiss-blue)' : 'var(--bg-primary)',
+                  background: key.status === 'valid' ? 'var(--brand-primary)' : 'var(--bg-primary)',
                   color: key.status === 'valid' ? 'white' : 'var(--text-primary)',
                 }}
                 onClick={async () => {

@@ -1,8 +1,8 @@
 @echo off
 chcp 65001 >nul
-title ZEMAS DB Builder - Setup
+title Engram DB Builder - Setup
 echo ============================================
-echo  ZEMAS DB Builder - Initial Setup
+echo  Engram DB Builder - Initial Setup
 echo ============================================
 echo.
 echo  This will create a virtual environment and

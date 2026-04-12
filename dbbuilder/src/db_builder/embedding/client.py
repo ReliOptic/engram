@@ -1,7 +1,7 @@
 """OpenRouter embedding API client.
 
 Standalone client that calls the OpenRouter /embeddings endpoint.
-Reads model config from ZEMAS models.json via DBBuilderConfig.
+Reads model config from Engram models.json via DBBuilderConfig.
 """
 
 from __future__ import annotations

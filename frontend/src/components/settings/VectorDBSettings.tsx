@@ -154,7 +154,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontFamily: 'var(--font-mono)',
     fontSize: '13px',
     fontWeight: 600,
-    color: 'var(--zeiss-blue)',
+    color: 'var(--brand-primary)',
   },
   importSection: {
     padding: '16px',

@@ -34,7 +34,7 @@ def _insert_accepted_chunks(db: DatabaseManager, count: int) -> list[str]:
         cid = f"chunk-{i:03d}"
         db.insert_chunk({
             "id": cid, "file_id": fid,
-            "text": f"Chunk text number {i} about PROVE system.",
+            "text": f"Chunk text number {i} about ProductA system.",
             "token_count": 10, "chunk_type": "manual",
             "source_file": "test.pdf", "source_type": "manual",
             "status": "accepted", "silo_key": "", "language": "en",

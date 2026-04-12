@@ -1,4 +1,4 @@
-"""OpenAI API client for ZEMAS.
+"""OpenAI API client for Engram.
 
 Handles calls to OpenAI's chat completions via the official SDK.
 Supports GPT-5.4, Codex, and other OpenAI models.

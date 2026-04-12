@@ -23,7 +23,7 @@ def raw_dir(tmp_data_dir: Path) -> Path:
     """Raw data dir with sample files."""
     d = tmp_data_dir / "raw"
     # Create sample files
-    (d / "manuals" / "PROVE_v3.pdf").write_bytes(b"%PDF-1.4 fake pdf content")
+    (d / "manuals" / "sample_manual.pdf").write_bytes(b"%PDF-1.4 fake pdf content")
     (d / "weekly_reports" / "CW15_Weekly.xlsx").write_bytes(b"PK\x03\x04 fake xlsx")
     (d / "sops" / "PM_Procedure.docx").write_bytes(b"PK\x03\x04 fake docx")
     (d / "misc" / "notes.md").write_text("# Notes\nSome notes here.")
@@ -55,7 +55,7 @@ class TestFileScanner:
         # Should find: .pdf, .xlsx, .docx, .md, .txt = 5 files
         assert len(results) == 5
         paths = {r["file_path"] for r in results}
-        assert "manuals/PROVE_v3.pdf" in paths
+        assert "manuals/sample_manual.pdf" in paths
         assert "weekly_reports/CW15_Weekly.xlsx" in paths
         assert "sops/PM_Procedure.docx" in paths
         assert "misc/notes.md" in paths
@@ -83,7 +83,7 @@ class TestFileScanner:
     def test_correct_source_types(self, raw_dir: Path, db: DatabaseManager):
         scanner = FileScanner(raw_dir, db)
         scanner.scan()
-        pdf = db.get_file_by_path("manuals/PROVE_v3.pdf")
+        pdf = db.get_file_by_path("manuals/sample_manual.pdf")
         assert pdf["source_type"] == "manual"
         xlsx = db.get_file_by_path("weekly_reports/CW15_Weekly.xlsx")
         assert xlsx["source_type"] == "weekly"
@@ -104,27 +104,27 @@ class TestFileScanner:
         scanner.scan()
 
         # Modify one file
-        (raw_dir / "manuals" / "PROVE_v3.pdf").write_bytes(b"%PDF-1.4 UPDATED content")
+        (raw_dir / "manuals" / "sample_manual.pdf").write_bytes(b"%PDF-1.4 UPDATED content")
         second = scanner.scan()
         assert len(second) == 1
-        assert second[0]["file_path"] == "manuals/PROVE_v3.pdf"
+        assert second[0]["file_path"] == "manuals/sample_manual.pdf"
         assert second[0]["status"] == "pending"
 
     def test_changed_file_clears_old_chunks(self, raw_dir: Path, db: DatabaseManager):
         scanner = FileScanner(raw_dir, db)
         scanner.scan()
-        pdf = db.get_file_by_path("manuals/PROVE_v3.pdf")
+        pdf = db.get_file_by_path("manuals/sample_manual.pdf")
         # Simulate existing chunks
         db.insert_chunk({
             "id": "old-chunk-1", "file_id": pdf["id"], "text": "old",
             "token_count": 10, "chunk_type": "manual",
-            "source_file": "PROVE_v3.pdf", "source_type": "manual",
+            "source_file": "sample_manual.pdf", "source_type": "manual",
             "silo_key": "", "language": "en",
         })
         assert len(db.get_chunks_by_file(pdf["id"])) == 1
 
         # Change file
-        (raw_dir / "manuals" / "PROVE_v3.pdf").write_bytes(b"NEW CONTENT")
+        (raw_dir / "manuals" / "sample_manual.pdf").write_bytes(b"NEW CONTENT")
         scanner.scan()
         assert len(db.get_chunks_by_file(pdf["id"])) == 0
 

@@ -1,4 +1,4 @@
-# ZEMAS — Multi-Agent Support System
+# Engram — Multi-Agent Support System
 
 Three AI agents (Analyzer, Finder, Reviewer) collaborate to diagnose technical issues,
 search past cases, and validate solutions. Knowledge accumulates automatically as you
@@ -11,8 +11,8 @@ problems and wants their solutions to become searchable institutional knowledge.
 
 ```bash
 # 1. Clone
-git clone https://github.com/YOUR_USERNAME/zemas.git
-cd zemas
+git clone https://github.com/YOUR_USERNAME/engram.git
+cd engram
 
 # 2. Install (Python 3.12+ required)
 python -m venv .venv
@@ -63,7 +63,7 @@ DB Builder (bulk import tool)   → Manuals, SOPs, documentation
 Bulk-import your documentation (PDFs, Word, Excel, Markdown) into the knowledge base:
 
 ```bash
-cd DB_Builder
+cd dbbuilder
 pip install -e ".[dev]"
 python -m db_builder --cli scan    # Find files
 python -m db_builder --cli build   # Chunk → embed → ChromaDB
@@ -90,10 +90,10 @@ Dashboard at `http://server-ip:9000/sync/dashboard` shows team activity.
 
 ```bash
 # Export your knowledge
-python -m backend.sync.export export --output zemas-knowledge.zip
+python -m backend.sync.export export --output engram-knowledge.zip
 
 # Colleague imports
-python -m backend.sync.export import --input zemas-knowledge.zip
+python -m backend.sync.export import --input engram-knowledge.zip
 ```
 
 ## Configuration

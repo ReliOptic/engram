@@ -1,4 +1,4 @@
-"""ChromaDB wrapper for ZEMAS knowledge base.
+"""ChromaDB wrapper for Engram knowledge base.
 
 Manages collections for different chunk types:
 - case_records (Type A): LLM-structured case summaries
@@ -8,9 +8,9 @@ Manages collections for different chunk types:
 
 All collections share a single ``EmbeddingFunction`` so the semantic
 space is consistent and DB Builder-produced manuals can be queried
-alongside ZEMAS-produced case_records / traces / weekly chunks.
+alongside Engram-produced case_records / traces / weekly chunks.
 
-Shared between ZEMAS and DB Builder.
+Shared between Engram and DB Builder.
 Spec reference: scaffolding-plan-v3.md Section 5.1
 """
 

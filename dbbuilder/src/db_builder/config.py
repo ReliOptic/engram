@@ -1,6 +1,6 @@
 """DB Builder configuration loader.
 
-Reads settings from environment variables and ZEMAS models.json.
+Reads settings from environment variables and ENGRAM models.json.
 """
 
 from __future__ import annotations
@@ -26,16 +26,16 @@ def _project_root() -> Path:
     return Path(__file__).resolve().parent.parent.parent
 
 
-def _default_zemas_config_dir() -> Path:
+def _default_engram_config_dir() -> Path:
     # In portable mode, look for config/ next to the app first
     local_config = _project_root() / "config"
     if local_config.exists():
         return local_config
-    # Fallback: ZEMAS project's config dir
+    # Fallback: ENGRAM project's config dir
     return _project_root().parent / "data" / "config"
 
 
-def _default_zemas_data_dir() -> Path:
+def _default_engram_data_dir() -> Path:
     # In portable mode, use data/ next to the app
     local_data = _project_root() / "data"
     if local_data.exists():
@@ -70,9 +70,9 @@ class DBBuilderConfig:
 
     # --- Paths ---
     raw_data_dir: Path = field(default_factory=lambda: _project_root() / "data" / "raw")
-    chromadb_dir: Path = field(default_factory=lambda: _default_zemas_data_dir() / "chroma_db")
+    chromadb_dir: Path = field(default_factory=lambda: _default_engram_data_dir() / "chroma_db")
     db_path: Path = field(default_factory=lambda: _project_root() / "data" / "db_builder.db")
-    zemas_config_dir: Path = field(default_factory=_default_zemas_config_dir)
+    engram_config_dir: Path = field(default_factory=_default_engram_config_dir)
 
     # --- Embedding (populated from models.json) ---
     embedding: EmbeddingConfig | None = None
@@ -98,7 +98,7 @@ def load_models_json(config_dir: Path) -> dict:
     if not models_path.exists():
         raise FileNotFoundError(
             f"models.json not found at {models_path}. "
-            "Set ZEMAS_CONFIG_DIR to the correct path."
+            "Set ENGRAM_CONFIG_DIR to the correct path."
         )
     return json.loads(models_path.read_text(encoding="utf-8"))
 
@@ -144,25 +144,25 @@ def _default_embedding_config() -> EmbeddingConfig:
 def load_config() -> DBBuilderConfig:
     """Load full configuration from env + models.json.
 
-    In portable mode (no ZEMAS project), creates a local models.json
+    In portable mode (no ENGRAM project), creates a local models.json
     with default embedding config if one doesn't exist.
     """
     root = _project_root()
     load_dotenv(root / ".env")
 
-    zemas_config_dir = Path(
-        os.getenv("ZEMAS_CONFIG_DIR", str(_default_zemas_config_dir()))
+    engram_config_dir = Path(
+        os.getenv("ENGRAM_CONFIG_DIR", str(_default_engram_config_dir()))
     )
-    zemas_data_dir = Path(
-        os.getenv("ZEMAS_DATA_DIR", str(_default_zemas_data_dir()))
+    engram_data_dir = Path(
+        os.getenv("ENGRAM_DATA_DIR", str(_default_engram_data_dir()))
     )
 
     # Try to load models.json; fall back to defaults for portable mode
     try:
-        models = load_models_json(zemas_config_dir)
+        models = load_models_json(engram_config_dir)
         embedding = _extract_embedding_config(models)
     except (FileNotFoundError, KeyError):
-        # Portable mode: no ZEMAS project available
+        # Portable mode: no ENGRAM project available
         # Create local config/ with default models.json
         local_config = root / "config"
         local_config.mkdir(parents=True, exist_ok=True)
@@ -189,7 +189,7 @@ def load_config() -> DBBuilderConfig:
                 json.dumps(default_models, indent=2), encoding="utf-8"
             )
         embedding = _default_embedding_config()
-        zemas_config_dir = local_config
+        engram_config_dir = local_config
 
     raw_data_dir = Path(os.getenv("DB_BUILDER_RAW_DIR", str(root / "data" / "raw")))
     raw_data_dir.mkdir(parents=True, exist_ok=True)
@@ -197,13 +197,13 @@ def load_config() -> DBBuilderConfig:
     db_dir = Path(os.getenv("DB_BUILDER_DB_PATH", str(root / "data" / "db_builder.db")))
     db_dir.parent.mkdir(parents=True, exist_ok=True)
 
-    chromadb_dir = zemas_data_dir / "chroma_db"
+    chromadb_dir = engram_data_dir / "chroma_db"
     chromadb_dir.mkdir(parents=True, exist_ok=True)
 
     return DBBuilderConfig(
         raw_data_dir=raw_data_dir,
         chromadb_dir=chromadb_dir,
         db_path=db_dir,
-        zemas_config_dir=zemas_config_dir,
+        engram_config_dir=engram_config_dir,
         embedding=embedding,
     )

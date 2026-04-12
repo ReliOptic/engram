@@ -39,8 +39,8 @@ SAMPLE_MODELS_JSON = {
 
 
 @pytest.fixture
-def zemas_config_dir(tmp_path: Path) -> Path:
-    """Create a temporary ZEMAS config directory with models.json."""
+def engram_config_dir(tmp_path: Path) -> Path:
+    """Create a temporary Engram config directory with models.json."""
     config_dir = tmp_path / "config"
     config_dir.mkdir()
     (config_dir / "models.json").write_text(

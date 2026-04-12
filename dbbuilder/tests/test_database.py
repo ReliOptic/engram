@@ -46,7 +46,7 @@ class TestSchemaInit:
 class TestFileOperations:
     def test_insert_and_get(self, db: DatabaseManager):
         file_id = db.insert_file(
-            file_path="manuals/PROVE_v3.pdf",
+            file_path="manuals/sample_manual.pdf",
             file_hash="abc123",
             file_size=1024,
             source_type="manual",
@@ -55,7 +55,7 @@ class TestFileOperations:
 
         f = db.get_file_by_id(file_id)
         assert f is not None
-        assert f["file_path"] == "manuals/PROVE_v3.pdf"
+        assert f["file_path"] == "manuals/sample_manual.pdf"
         assert f["file_hash"] == "abc123"
         assert f["file_size"] == 1024
         assert f["source_type"] == "manual"
@@ -122,12 +122,12 @@ class TestChunkOperations:
         cid = db.insert_chunk({
             "id": chunk_id,
             "file_id": fid,
-            "text": "Sample chunk text about TIS recalibration.",
+            "text": "Sample chunk text about System calibration.",
             "token_count": 42,
             "chunk_type": "manual",
             "source_file": "test.pdf",
             "source_type": "manual",
-            "tool_family": "PROVE",
+            "tool_family": "ProductA",
             "silo_key": "",
             "language": "en",
         })
@@ -137,8 +137,8 @@ class TestChunkOperations:
         _, cid = self._make_chunk(db)
         c = db.get_chunk_by_id(cid)
         assert c is not None
-        assert c["text"] == "Sample chunk text about TIS recalibration."
-        assert c["tool_family"] == "PROVE"
+        assert c["text"] == "Sample chunk text about System calibration."
+        assert c["tool_family"] == "ProductA"
         assert c["chunk_type"] == "manual"
         assert c["status"] == "pending"
         assert c["is_embedded"] == 0
@@ -215,15 +215,15 @@ class TestChunkOperations:
         db.insert_chunk({
             "id": "c1", "file_id": fid, "text": "x", "token_count": 10,
             "chunk_type": "manual", "source_file": "t.pdf", "source_type": "manual",
-            "tool_family": "PROVE", "silo_key": "", "language": "en",
+            "tool_family": "ProductA", "silo_key": "", "language": "en",
         })
         db.insert_chunk({
             "id": "c2", "file_id": fid, "text": "y", "token_count": 10,
             "chunk_type": "manual", "source_file": "t.pdf", "source_type": "manual",
-            "tool_family": "AIMS", "silo_key": "", "language": "en",
+            "tool_family": "ProductB", "silo_key": "", "language": "en",
         })
-        assert db.count_chunks(tool_family="PROVE") == 1
-        assert db.count_chunks(tool_family="AIMS") == 1
+        assert db.count_chunks(tool_family="ProductA") == 1
+        assert db.count_chunks(tool_family="ProductB") == 1
 
     def test_delete_by_file(self, db: DatabaseManager):
         fid, _ = self._make_chunk(db)

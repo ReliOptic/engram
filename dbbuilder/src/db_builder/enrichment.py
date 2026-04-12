@@ -5,7 +5,7 @@ After chunking, LLM enriches each chunk with:
 - summary: 1-2 sentence summary
 - keywords: searchable keywords
 - cross_references: related topics/sections
-- tool_family: PROVE/AIMS/WLCD/FAVOR detection
+- tool_family: product/tool detection from content
 - language: detected language
 
 Also maintains a wiki index (index.md) of all ingested documents.
@@ -22,14 +22,14 @@ import httpx
 
 logger = logging.getLogger(__name__)
 
-ENRICH_PROMPT = """You are a technical documentation analyst for ZEISS EUV lithography equipment (PROVE, AIMS, WLCD, FAVOR).
+ENRICH_PROMPT = """You are a technical documentation analyst.
 
 Analyze this text chunk and return a JSON object with these fields:
 - "title": concise descriptive title (max 80 chars)
 - "summary": 1-2 sentence summary of what this chunk is about
 - "keywords": list of 3-8 searchable keywords (English, technical terms)
-- "cross_references": list of related topics, procedures, or sections mentioned (e.g. "TIS recalibration", "Chapter 8.3")
-- "tool_family": which tool this relates to: "PROVE", "AIMS", "WLCD", "FAVOR", or "general"
+- "cross_references": list of related topics, procedures, or sections mentioned
+- "tool_family": which product/tool this relates to (detect from content), or "general"
 - "language": detected language: "en", "de", "ko", or "mixed"
 - "is_safety_critical": true if this contains WARNING, CAUTION, DANGER, or safety procedures
 
@@ -40,16 +40,16 @@ Text chunk:
 {text}
 ---"""
 
-INDEX_PROMPT = """You are maintaining a wiki index for ZEISS EUV equipment documentation.
+INDEX_PROMPT = """You are maintaining a wiki index for technical documentation.
 
 Given these document summaries, generate a markdown index page organized by topic.
-Group by tool_family (PROVE, AIMS, General), then by topic area.
+Group by tool_family, then by topic area.
 Each entry should be: `- **{title}** — {summary} [source: {source_file}]`
 
 Documents:
 {documents}
 
-Generate the index in markdown format. Start with `# ZEMAS Knowledge Base Index`."""
+Generate the index in markdown format. Start with `# Engram Knowledge Base Index`."""
 
 
 @dataclass

@@ -15,8 +15,8 @@ const DEFAULT_LEFT = 280;
 const DEFAULT_RIGHT = 280;
 const RESPONSIVE_BREAKPOINT = 900;
 
-const STORAGE_KEY = 'zemas-layout-widths';
-const COLLAPSE_KEY = 'zemas-layout-collapsed';
+const STORAGE_KEY = 'engram-layout-widths';
+const COLLAPSE_KEY = 'engram-layout-collapsed';
 
 function loadWidths(): { left: number; right: number } {
   try {
@@ -106,8 +106,8 @@ export function ResizableLayout({ header, leftTop, leftBottom, center, right }: 
   // Listen for Ctrl+B keyboard shortcut via custom event from useKeyboardShortcuts
   useEffect(() => {
     const handler = () => toggleLeft();
-    window.addEventListener('zemas-toggle-left-sidebar', handler);
-    return () => window.removeEventListener('zemas-toggle-left-sidebar', handler);
+    window.addEventListener('engram-toggle-left-sidebar', handler);
+    return () => window.removeEventListener('engram-toggle-left-sidebar', handler);
   }, [toggleLeft]);
 
   // Auto-collapse sidebars on narrow viewports
@@ -134,11 +134,11 @@ export function ResizableLayout({ header, leftTop, leftBottom, center, right }: 
   // Expose toggle functions for keyboard shortcuts
   useEffect(() => {
     const w = window as unknown as Record<string, unknown>;
-    w.__zemasToggleLeft = toggleLeft;
-    w.__zemasToggleRight = toggleRight;
+    w.__engramToggleLeft = toggleLeft;
+    w.__engramToggleRight = toggleRight;
     return () => {
-      delete w.__zemasToggleLeft;
-      delete w.__zemasToggleRight;
+      delete w.__engramToggleLeft;
+      delete w.__engramToggleRight;
     };
   }, [toggleLeft, toggleRight]);
 
@@ -278,7 +278,7 @@ const styles: Record<string, React.CSSProperties> = {
     zIndex: 2,
   },
   dividerActive: {
-    background: 'var(--zeiss-blue)',
+    background: 'var(--brand-primary)',
   },
   collapseBtn: {
     position: 'absolute',

@@ -1,4 +1,4 @@
-"""ZEMAS Orchestrator — collaborative multi-agent loop.
+"""Engram Orchestrator — collaborative multi-agent loop.
 
 Manages turn-taking between Analyzer, Finder, and Reviewer agents.
 Validates contributions, rejects rubber-stamps, enforces min-contribution,
@@ -150,7 +150,7 @@ def _is_repetition(response: AgentResponse, history: list[AgentResponse]) -> boo
 
 
 class Orchestrator:
-    """Collaborative loop orchestrator for ZEMAS agents.
+    """Collaborative loop orchestrator for Engram agents.
 
     Manages turn-taking, validates contributions, handles @mentions,
     and determines when to terminate the discussion.

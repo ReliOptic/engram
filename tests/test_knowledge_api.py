@@ -37,12 +37,12 @@ async def test_knowledge_stats_with_cases(client):
     (both patched by the autouse mock_env fixture via conftest).
     """
     import backend.config as _cfg
-    from backend.knowledge.database import ZemasDB
+    from backend.knowledge.database import EngramDB
 
-    db_path = _cfg.DATA_DIR / "sqlite" / "zemas.db"
+    db_path = _cfg.DATA_DIR / "sqlite" / "engram.db"
     db_path.parent.mkdir(parents=True, exist_ok=True)
 
-    db = ZemasDB(str(db_path))
+    db = EngramDB(str(db_path))
     db.create_case(
         case_id="TEST-001",
         account="ClientA",

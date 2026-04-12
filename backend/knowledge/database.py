@@ -1,4 +1,4 @@
-"""SQLite structured database for ZEMAS.
+"""SQLite structured database for Engram.
 
 Complements ChromaDB with structured queries:
 - Case metadata: status, timestamps, account/tool/component filtering
@@ -17,8 +17,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 
-class ZemasDB:
-    """SQLite database for structured case and cost data."""
+class EngramDB:
+    """SQLite database for structured case and cost data (EngramDB)."""
 
     def __init__(self, db_path: str):
         self._db_path = db_path

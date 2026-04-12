@@ -1,4 +1,4 @@
-"""Provider-agnostic LLM client for ZEMAS.
+"""Provider-agnostic LLM client for Engram.
 
 Dispatches to OpenRouter or OpenAI based on role → provider mapping
 in models.json. Tracks token usage and estimates cost.

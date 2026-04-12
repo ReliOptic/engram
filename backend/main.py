@@ -1,4 +1,4 @@
-"""ZEMAS FastAPI application.
+"""Engram FastAPI application.
 
 Entry point for the backend server. Provides:
 - /health endpoint
@@ -61,16 +61,16 @@ class TestConnectionRequest(BaseModel):
 
 
 def _get_db():
-    """Get a shared ZemasDB instance."""
-    from backend.knowledge.database import ZemasDB
-    db_path = _cfg.DATA_DIR / "sqlite" / "zemas.db"
-    return ZemasDB(str(db_path))
+    """Get a shared EngramDB instance."""
+    from backend.knowledge.database import EngramDB
+    db_path = _cfg.DATA_DIR / "sqlite" / "engram.db"
+    return EngramDB(str(db_path))
 
 
 def create_app() -> FastAPI:
     """Factory function for creating the FastAPI app."""
     app = FastAPI(
-        title="ZEMAS",
+        title="Engram",
         description="Multi-Agent Support System",
         version=VERSION,
     )
@@ -99,8 +99,8 @@ def create_app() -> FastAPI:
         if not SYNC_SERVER_URL:
             return {"enabled": False, "status": "disabled", "pending_events": 0}
         try:
-            from backend.knowledge.database import ZemasDB
-            db = ZemasDB(str(Path(_cfg.DATA_DIR) / "sqlite" / "zemas.db"))
+            from backend.knowledge.database import EngramDB
+            db = EngramDB(str(Path(_cfg.DATA_DIR) / "sqlite" / "engram.db"))
             from backend.sync.queue import SyncQueue
             queue = SyncQueue(db.conn)
             from backend.sync.client import SyncClient
@@ -220,11 +220,11 @@ def create_app() -> FastAPI:
         limit: int = 50,
     ):
         """List cases from SQLite with optional filters."""
-        from backend.knowledge.database import ZemasDB
-        db_path = _cfg.DATA_DIR / "sqlite" / "zemas.db"
+        from backend.knowledge.database import EngramDB
+        db_path = _cfg.DATA_DIR / "sqlite" / "engram.db"
         if not db_path.exists():
             return []
-        db = ZemasDB(str(db_path))
+        db = EngramDB(str(db_path))
         try:
             return db.list_cases(account=account, tool=tool, status=status, limit=limit)
         finally:

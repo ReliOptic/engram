@@ -76,7 +76,7 @@ def cmd_scan(config) -> None:
 def build_cli_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="db-builder",
-        description="ZEMAS DB Builder — Knowledge Base Construction Pipeline",
+        description="Engram DB Builder — Knowledge Base Construction Pipeline",
     )
     parser.add_argument(
         "--cli", action="store_true",
@@ -101,7 +101,7 @@ def build_cli_parser() -> argparse.ArgumentParser:
     sub.add_parser("report", help="Show quality report")
     sub.add_parser("inspect", help="Launch Inspector UI")
 
-    export_p = sub.add_parser("export", help="Export ChromaDB to ZEMAS")
+    export_p = sub.add_parser("export", help="Export ChromaDB to Engram")
     export_p.add_argument("--output", type=str, required=True, help="Output directory")
 
     rebuild_p = sub.add_parser("rebuild", help="Rebuild all (drop + re-create)")

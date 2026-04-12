@@ -1,7 +1,7 @@
-"""ZEMAS configuration loader.
+"""Engram configuration loader.
 
 Loads .env for secrets, models.json for model registry,
-dropdowns.json for UI hierarchy. Supports ZEMAS_CONFIG_DIR
+dropdowns.json for UI hierarchy. Supports ENGRAM_CONFIG_DIR
 override for test isolation.
 """
 
@@ -15,8 +15,8 @@ load_dotenv()
 
 # Base paths
 PROJECT_ROOT = Path(__file__).parent.parent
-CONFIG_DIR = Path(os.getenv("ZEMAS_CONFIG_DIR", PROJECT_ROOT / "data" / "config"))
-DATA_DIR = Path(os.getenv("ZEMAS_DATA_DIR", PROJECT_ROOT / "data"))
+CONFIG_DIR = Path(os.getenv("ENGRAM_CONFIG_DIR", PROJECT_ROOT / "data" / "config"))
+DATA_DIR = Path(os.getenv("ENGRAM_DATA_DIR", PROJECT_ROOT / "data"))
 
 # API keys
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")

@@ -1,4 +1,4 @@
-"""Shared test fixtures for ZEMAS test suite."""
+"""Shared test fixtures for Engram test suite."""
 
 import json
 import os
@@ -19,9 +19,9 @@ def mock_env(monkeypatch, tmp_path):
     monkeypatch.setenv("OPENROUTER_API_KEY", "test-openrouter-key")
     monkeypatch.setenv("OPENAI_API_KEY", "test-openai-key")
     monkeypatch.setenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
-    monkeypatch.setenv("ZEMAS_CONFIG_DIR", str(TEST_CONFIG_DIR))
+    monkeypatch.setenv("ENGRAM_CONFIG_DIR", str(TEST_CONFIG_DIR))
     tmp_data = tmp_path / "data"
-    monkeypatch.setenv("ZEMAS_DATA_DIR", str(tmp_data))
+    monkeypatch.setenv("ENGRAM_DATA_DIR", str(tmp_data))
     # Create data subdirs in tmp
     (tmp_data / "chroma_db").mkdir(parents=True, exist_ok=True)
     (tmp_data / "sqlite").mkdir(parents=True, exist_ok=True)
@@ -35,7 +35,7 @@ def mock_env(monkeypatch, tmp_path):
 def fake_embedding_function(monkeypatch):
     """Replace the default VectorDB embedding function with a fake.
 
-    Every ZEMAS collection (case_records, traces, weekly, manuals) routes
+    Every Engram collection (case_records, traces, weekly, manuals) routes
     embeddings through ``backend.knowledge.vectordb._default_embedding_function``.
     Patching it here means no test ever hits real OpenRouter — the fake
     function produces deterministic 1536-dim vectors from a SHA-256 hash.

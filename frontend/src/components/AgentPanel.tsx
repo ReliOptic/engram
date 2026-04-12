@@ -63,10 +63,10 @@ export function AgentPanel({ agentStatuses }: AgentPanelProps) {
 function StatusBadge({ status }: { status: AgentStatus }) {
   const config: Record<AgentStatus, { bg: string; text: string; label: string }> = {
     idle: { bg: 'var(--bg-secondary)', text: 'var(--text-muted)', label: 'Idle' },
-    thinking: { bg: '#EEF2FF', text: 'var(--zeiss-blue)', label: 'Thinking...' },
+    thinking: { bg: '#EEF2FF', text: 'var(--brand-primary)', label: 'Thinking...' },
     done: { bg: '#ECFDF5', text: '#059669', label: 'Done' },
     waiting: { bg: '#FFF7ED', text: '#D97706', label: 'Waiting' },
-    processing: { bg: '#EEF2FF', text: 'var(--zeiss-blue)', label: 'Processing...' },
+    processing: { bg: '#EEF2FF', text: 'var(--brand-primary)', label: 'Processing...' },
   };
   const c = config[status];
   return (
@@ -146,7 +146,7 @@ const styles: Record<string, React.CSSProperties> = {
     width: '6px',
     height: '6px',
     borderRadius: '50%',
-    background: 'var(--zeiss-blue)',
+    background: 'var(--brand-primary)',
     marginRight: '4px',
     animation: 'pulse 1.5s ease-in-out infinite',
   },

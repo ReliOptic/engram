@@ -36,7 +36,7 @@ def bootstrap_weekly(xlsx_path: str, vectordb: VectorDB) -> int:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="ZEMAS Bootstrap — bulk data ingest")
+    parser = argparse.ArgumentParser(description="Engram Bootstrap — bulk data ingest")
     parser.add_argument("--weekly", type=str, help="Path to weekly report Excel file")
     parser.add_argument("--all", action="store_true", help="Ingest all available data")
     parser.add_argument("--persist-dir", type=str, default="data/chroma_db",

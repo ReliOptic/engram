@@ -24,7 +24,7 @@ DEFAULT_TIMEOUT = 10.0
 
 
 class SyncClient:
-    """Push/pull sync client for ZEMAS offline-first architecture."""
+    """Push/pull sync client for Engram offline-first architecture."""
 
     def __init__(
         self,

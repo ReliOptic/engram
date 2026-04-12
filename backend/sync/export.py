@@ -1,12 +1,12 @@
-"""Knowledge export/import — share ZEMAS data via ZIP file.
+"""Knowledge export/import — share Engram data via ZIP file.
 
 For giving colleagues a copy of your knowledge base without setting
 up a sync server. They unzip, run import, and have your cases +
-manuals in their local ZEMAS.
+manuals in their local Engram.
 
 Usage:
-    python -m backend.sync.export --output zemas-pack.zip
-    python -m backend.sync.import --input zemas-pack.zip
+    python -m backend.sync.export --output engram-pack.zip
+    python -m backend.sync.import --input engram-pack.zip
 """
 
 from __future__ import annotations
@@ -36,7 +36,7 @@ def export_knowledge(
 
     with ZipFile(output_path, "w") as zf:
         # Export sessions + messages from SQLite
-        db_path = data_dir / "sqlite" / "zemas.db"
+        db_path = data_dir / "sqlite" / "engram.db"
         if db_path.exists() and include_cases:
             conn = sqlite3.connect(str(db_path))
             conn.row_factory = sqlite3.Row
@@ -82,7 +82,7 @@ def import_knowledge(
     merge_sessions: bool = True,
     merge_manuals: bool = True,
 ) -> dict:
-    """Import knowledge from a ZIP file into the local ZEMAS.
+    """Import knowledge from a ZIP file into the local Engram.
 
     Sessions/messages are merged (skip duplicates by session_id).
     ChromaDB files are copied (overwrite if newer).
@@ -95,7 +95,7 @@ def import_knowledge(
             sessions = json.loads(zf.read("sessions.json"))
             messages = json.loads(zf.read("messages.json")) if "messages.json" in zf.namelist() else []
 
-            db_path = data_dir / "sqlite" / "zemas.db"
+            db_path = data_dir / "sqlite" / "engram.db"
             db_path.parent.mkdir(parents=True, exist_ok=True)
             conn = sqlite3.connect(str(db_path))
             conn.row_factory = sqlite3.Row
@@ -166,18 +166,18 @@ if __name__ == "__main__":
 
     logging.basicConfig(level=logging.INFO)
 
-    parser = argparse.ArgumentParser(description="ZEMAS Knowledge Export/Import")
+    parser = argparse.ArgumentParser(description="Engram Knowledge Export/Import")
     sub = parser.add_subparsers(dest="command")
 
     exp = sub.add_parser("export", help="Export knowledge to ZIP")
     exp.add_argument("--output", required=True, help="Output ZIP path")
-    exp.add_argument("--data-dir", default="data", help="ZEMAS data directory")
+    exp.add_argument("--data-dir", default="data", help="Engram data directory")
     exp.add_argument("--no-manuals", action="store_true")
     exp.add_argument("--no-cases", action="store_true")
 
     imp = sub.add_parser("import", help="Import knowledge from ZIP")
     imp.add_argument("--input", required=True, help="Input ZIP path")
-    imp.add_argument("--data-dir", default="data", help="ZEMAS data directory")
+    imp.add_argument("--data-dir", default="data", help="Engram data directory")
 
     args = parser.parse_args()
 

@@ -1,7 +1,6 @@
-"""Tests for weekly report ingestion from Excel.
+"""Tests for weekly report ingestion from Excel."""
 
-Spec reference: scaffolding-plan-v3.md Section 5.5, Section 11.2
-"""
+import os
 
 import pytest
 
@@ -9,6 +8,11 @@ from backend.knowledge.weekly_ingester import WeeklyIngester
 
 
 XLSX_PATH = "data/raw/weekly_reports/CW15_Weekly_Apps.xlsx"
+
+pytestmark = pytest.mark.skipif(
+    not os.path.exists(XLSX_PATH),
+    reason=f"Test data not found: {XLSX_PATH}",
+)
 
 
 @pytest.fixture

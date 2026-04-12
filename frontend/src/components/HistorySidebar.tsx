@@ -280,7 +280,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: '12px',
     fontFamily: 'var(--font-family)',
     borderRadius: 'var(--radius-sm)',
-    border: '1px solid var(--zeiss-blue)',
+    border: '1px solid var(--brand-primary)',
     outline: 'none',
     background: 'var(--bg-primary)',
     color: 'var(--text-primary)',

@@ -36,7 +36,7 @@ async def test_websocket_user_message(app):
     """WebSocket /ws accepts user_message and returns status_update."""
     from starlette.testclient import TestClient
 
-    msg = json.dumps({"type": "user_message", "payload": {"text": "hello ZEMAS", "silo": {}}})
+    msg = json.dumps({"type": "user_message", "payload": {"text": "hello Engram", "silo": {}}})
     with TestClient(app) as tc:
         with tc.websocket_connect("/ws") as ws:
             ws.send_text(msg)

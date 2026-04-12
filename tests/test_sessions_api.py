@@ -80,10 +80,10 @@ async def test_delete_session(client):
 
 async def test_message_persistence_via_db(tmp_path):
     """Test that messages are persisted correctly through the DB layer."""
-    from backend.knowledge.database import ZemasDB
+    from backend.knowledge.database import EngramDB
 
     db_path = tmp_path / "test_sessions.db"
-    db = ZemasDB(str(db_path))
+    db = EngramDB(str(db_path))
     try:
         sid = db.create_session(title="DB Test")
         db.add_message(session_id=sid, agent="user", content="Hello")

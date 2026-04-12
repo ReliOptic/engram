@@ -1,4 +1,4 @@
-"""Base agent class for ZEMAS multi-agent system.
+"""Base agent class for Engram multi-agent system.
 
 All specialized agents (Analyzer, Finder, Reviewer) extend this class.
 Loads system prompts from external md files in data/config/agents/.
@@ -93,7 +93,7 @@ def _parse_yaml_simple(yaml_text: str) -> dict:
 
 
 class BaseAgent:
-    """Base class for ZEMAS agents.
+    """Base class for Engram agents.
 
     Loads role and system_prompt from data/config/agents/{role}.md.
     Subclasses only need to set `role` — everything else is loaded from config.

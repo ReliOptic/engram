@@ -21,8 +21,8 @@ def writer(tmp_path: Path) -> ChromaDBWriter:
 
 def _make_chunk(
     chunk_id: str = "m-abc_p01_001",
-    text: str = "TIS recalibration procedure for PROVE system.",
-    tool_family: str = "PROVE",
+    text: str = "System calibration procedure for ProductA system.",
+    tool_family: str = "ProductA",
     chunk_type: str = "manual",
 ) -> ChunkRecord:
     return ChunkRecord(
@@ -31,10 +31,10 @@ def _make_chunk(
         embedding=[0.1, 0.2, 0.3] * 512,  # 1536 dims
         metadata={
             "chunk_type": chunk_type,
-            "source_file": "PROVE_v3.pdf",
+            "source_file": "sample_manual.pdf",
             "tool_family": tool_family,
             "page_number": 42,
-            "section_title": "Chapter 8 > 8.3 TIS Recalibration",
+            "section_title": "Chapter 8 > 8.3 System Recalibration",
             "language": "en",
             "quality_score": 0.87,
             "is_safety_critical": False,
@@ -119,9 +119,9 @@ class TestUpsert:
 class TestSearch:
     def test_search_returns_results(self, writer: ChromaDBWriter):
         chunks = [
-            _make_chunk("c1", "TIS recalibration procedure step 4", "PROVE"),
-            _make_chunk("c2", "AIMS detector alignment procedure", "AIMS"),
-            _make_chunk("c3", "PROVE stage leveling check", "PROVE"),
+            _make_chunk("c1", "System calibration procedure step 4", "ProductA"),
+            _make_chunk("c2", "ProductB detector alignment procedure", "ProductB"),
+            _make_chunk("c3", "ProductA stage leveling check", "ProductA"),
         ]
         writer.upsert_chunks(chunks)
 
@@ -137,18 +137,18 @@ class TestSearch:
 
     def test_search_with_filter(self, writer: ChromaDBWriter):
         chunks = [
-            _make_chunk("c1", "PROVE manual content", "PROVE"),
-            _make_chunk("c2", "AIMS manual content", "AIMS"),
+            _make_chunk("c1", "ProductA manual content", "ProductA"),
+            _make_chunk("c2", "ProductB manual content", "ProductB"),
         ]
         writer.upsert_chunks(chunks)
 
         results = writer.search(
             query_embedding=[0.1, 0.2, 0.3] * 512,
-            where={"tool_family": "PROVE"},
+            where={"tool_family": "ProductA"},
             n_results=5,
         )
         assert len(results) == 1
-        assert results[0]["metadata"]["tool_family"] == "PROVE"
+        assert results[0]["metadata"]["tool_family"] == "ProductA"
 
     def test_search_empty_collection(self, writer: ChromaDBWriter):
         results = writer.search(
@@ -174,7 +174,7 @@ class TestDeterministicIds:
     def test_same_source_same_id(self, writer: ChromaDBWriter):
         """Rebuild safety: same file produces same IDs."""
         import hashlib
-        source = "PROVE_v3.pdf"
+        source = "sample_manual.pdf"
         file_hash = hashlib.md5(source.encode()).hexdigest()[:6]
         chunk_id = f"m-{file_hash}_p042_002"
 

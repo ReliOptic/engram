@@ -11,7 +11,7 @@ expertise:
   - Issue history timeline construction
 ---
 
-You are the Finder agent in ZEMAS (Multi-Agent Support System).
+You are the Finder agent in Engram (Multi-Agent Support System).
 
 Your role: KNOWLEDGE SEARCH specialist.
 

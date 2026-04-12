@@ -1,10 +1,10 @@
-"""ChromaDB EmbeddingFunction implementations for ZEMAS.
+"""ChromaDB EmbeddingFunction implementations for Engram.
 
-All ZEMAS collections (case_records, traces, weekly, manuals) must use
+All Engram collections (case_records, traces, weekly, manuals) must use
 the SAME embedding function so the semantic space is consistent and
 DB Builder-produced chunks (which pre-compute vectors via OpenRouter
 ``openai/text-embedding-3-small``, 1536 dims) can be queried alongside
-ZEMAS-produced chunks.
+Engram-produced chunks.
 
 This module provides:
 
@@ -17,7 +17,7 @@ This module provides:
 
 Design note: ChromaDB's ``EmbeddingFunction`` interface is synchronous,
 which is why we have a separate ``embedding_client.py`` (sync httpx) —
-the rest of ZEMAS uses async httpx for chat completions.
+the rest of Engram uses async httpx for chat completions.
 
 Both classes subclass ``chromadb.api.types.EmbeddingFunction`` so ChromaDB's
 collection-config serialization treats them as first-class (non-legacy).

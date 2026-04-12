@@ -15,10 +15,11 @@ build/
 data/chroma_db/
 data/chroma_db.backup/
 data/sqlite/
+data/uploads/
+data/raw/
 
 # Node
 node_modules/
-frontend/dist/
 
 # IDE
 .vscode/
@@ -33,3 +34,5 @@ Thumbs.db
 # Tools
 .gstack/
 .omc/
+.claude/
+.pytest_cache/

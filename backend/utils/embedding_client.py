@@ -1,4 +1,4 @@
-"""Synchronous OpenRouter embedding client for ZEMAS.
+"""Synchronous OpenRouter embedding client for Engram.
 
 Separate from ``openrouter.py`` (which is async chat completions) because
 ChromaDB's ``EmbeddingFunction`` interface is synchronous — mixing async
@@ -65,8 +65,8 @@ class SyncOpenRouterEmbeddingClient:
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
-            "HTTP-Referer": "https://github.com/zemas",
-            "X-Title": "ZEMAS",
+            "HTTP-Referer": "https://github.com/engram",
+            "X-Title": "Engram",
         }
         payload = {"model": self.model, "input": texts}
 

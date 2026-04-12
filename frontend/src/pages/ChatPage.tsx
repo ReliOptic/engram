@@ -203,7 +203,7 @@ export function ChatPage() {
       input?.focus();
     },
     onToggleLeftSidebar: () => {
-      window.dispatchEvent(new CustomEvent('zemas-toggle-left-sidebar'));
+      window.dispatchEvent(new CustomEvent('engram-toggle-left-sidebar'));
     },
     onStop: isProcessing ? handleStop : undefined,
   });

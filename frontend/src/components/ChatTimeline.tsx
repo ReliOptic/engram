@@ -10,7 +10,7 @@ const AGENT_COLORS: Record<AgentRole, string> = {
   analyzer: 'var(--agent-analyzer)',
   finder: 'var(--agent-finder)',
   reviewer: 'var(--agent-reviewer)',
-  user: 'var(--zeiss-blue)',
+  user: 'var(--brand-primary)',
 };
 
 const AGENT_NAMES: Record<AgentRole, string> = {
@@ -62,7 +62,7 @@ export function ChatTimeline({ messages, isProcessing }: ChatTimelineProps) {
 
 function MessageBubble({ message }: { message: AgentMessage }) {
   const isUser = message.agent === 'user';
-  const agentColor = AGENT_COLORS[message.agent] ?? 'var(--zeiss-blue)';
+  const agentColor = AGENT_COLORS[message.agent] ?? 'var(--brand-primary)';
   const agentName = AGENT_NAMES[message.agent] ?? message.agent;
 
   // Highlight @mentions in content
@@ -172,7 +172,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   userBubble: {
     padding: '12px 16px',
-    background: 'var(--zeiss-blue)',
+    background: 'var(--brand-primary)',
     borderRadius: 'var(--radius-lg)',
     maxWidth: '75%',
   },
@@ -238,7 +238,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   addressedTo: {
     fontSize: '11px',
-    color: 'var(--zeiss-link)',
+    color: 'var(--brand-link)',
     fontWeight: 500,
   },
   time: {
@@ -253,7 +253,7 @@ const styles: Record<string, React.CSSProperties> = {
     whiteSpace: 'pre-wrap',
   },
   mention: {
-    color: 'var(--zeiss-link)',
+    color: 'var(--brand-link)',
     fontWeight: 600,
   },
   // Thinking indicator

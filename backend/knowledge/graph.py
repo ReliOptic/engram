@@ -1,4 +1,4 @@
-"""Knowledge graph for ZEMAS dreaming pipeline.
+"""Knowledge graph for Engram dreaming pipeline.
 
 Builds a lightweight context graph from VectorDB chunks:
 - Nodes: cases, issues, components, tools

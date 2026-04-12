@@ -1,6 +1,6 @@
 """ChromaDB writer for persisting embedded chunks.
 
-Writes Type M chunks to the 'zemas_manuals' collection and
+Writes Type M chunks to the 'engram_manuals' collection and
 Type C chunks to the 'weekly' collection.
 """
 
@@ -163,7 +163,7 @@ class ChromaDBWriter:
                 raise
 
     def export(self, output_dir: Path) -> None:
-        """Copy the persist directory to another location (for ZEMAS deployment)."""
+        """Copy the persist directory to another location (for Engram deployment)."""
         output_dir = Path(output_dir)
         if output_dir.exists():
             shutil.rmtree(output_dir)

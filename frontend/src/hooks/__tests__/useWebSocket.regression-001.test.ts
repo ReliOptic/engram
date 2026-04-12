@@ -1,6 +1,6 @@
 // Regression: ISSUE-002/003/007 — StrictMode WS double-mount cascade
 // Found by /qa on 2026-04-12
-// Report: .gstack/qa-reports/qa-report-zemas-2026-04-12.md
+// Report: .gstack/qa-reports/qa-report-engram-2026-04-12.md
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'

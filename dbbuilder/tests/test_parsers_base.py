@@ -48,7 +48,7 @@ class TestDataStructures:
     def test_parsed_section_fields(self):
         s = ParsedSection(
             text="Chapter 8 content",
-            section_path=["Chapter 8", "8.3 TIS Recal"],
+            section_path=["Chapter 8", "8.3 System Recal"],
             page_range=(41, 45),
             tables=[Table(headers=["X"], rows=[["1"]])],
             cross_refs=["Chapter 4.2"],
@@ -56,7 +56,7 @@ class TestDataStructures:
             metadata={"version": "SW 5.6.2"},
         )
         assert s.text == "Chapter 8 content"
-        assert s.section_path == ["Chapter 8", "8.3 TIS Recal"]
+        assert s.section_path == ["Chapter 8", "8.3 System Recal"]
         assert s.page_range == (41, 45)
         assert len(s.tables) == 1
         assert s.cross_refs == ["Chapter 4.2"]
@@ -162,7 +162,7 @@ class TestSourceTypeInference:
         # Folder override takes priority
         ("manuals/notes.md", "manual"),
         ("manuals/readme.txt", "manual"),
-        ("manuals/PROVE_v3.pdf", "manual"),
+        ("manuals/sample_manual.pdf", "manual"),
         ("weekly_reports/CW15.xlsx", "weekly"),
         ("sops/procedure.txt", "sop"),
         ("images/diagram.pdf", "image"),

@@ -1,6 +1,6 @@
-"""ZEMAS Sync Server — runs on a mini PC on the LAN.
+"""Engram Sync Server — runs on a mini PC on the LAN.
 
-Receives case events from ZEMAS clients, stores them in a merged
+Receives case events from Engram clients, stores them in a merged
 SQLite database, and serves them to other clients on pull. No auth,
 no TLS — trust-based, LAN-only.
 
@@ -24,7 +24,7 @@ from pydantic import BaseModel
 DATA_DIR = Path(os.getenv("SYNC_DATA_DIR", "./sync_data"))
 DB_PATH = DATA_DIR / "sync.db"
 
-app = FastAPI(title="ZEMAS Sync Server", version="0.1.0")
+app = FastAPI(title="Engram Sync Server", version="0.1.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -231,7 +231,7 @@ async def dashboard():
     return f"""<!DOCTYPE html>
 <html>
 <head>
-    <title>ZEMAS Team Dashboard</title>
+    <title>Engram Team Dashboard</title>
     <meta charset="utf-8">
     <style>
         body {{ font-family: 'Segoe UI', sans-serif; margin: 40px; background: #f5f5f5; }}
@@ -248,7 +248,7 @@ async def dashboard():
 </head>
 <body>
     <div class="header">
-        <h1>ZEMAS Team Dashboard</h1>
+        <h1>Engram Team Dashboard</h1>
         <span class="badge">LIVE</span>
     </div>
 

@@ -120,7 +120,7 @@ function StatusBadge({ status }: { status: string }) {
 
 const btnStyle: React.CSSProperties = {
   padding: '8px 20px',
-  background: 'var(--zeiss-blue)',
+  background: 'var(--brand-primary)',
   color: 'white',
   border: 'none',
   borderRadius: '4px',

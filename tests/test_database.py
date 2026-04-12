@@ -6,13 +6,13 @@ cost tracking, and audit logging.
 
 import pytest
 
-from backend.knowledge.database import ZemasDB
+from backend.knowledge.database import EngramDB
 
 
 @pytest.fixture
 def db(tmp_path):
     """Create a test database in temp directory."""
-    return ZemasDB(db_path=str(tmp_path / "test_zemas.db"))
+    return EngramDB(db_path=str(tmp_path / "test_engram.db"))
 
 
 async def test_create_case(db):

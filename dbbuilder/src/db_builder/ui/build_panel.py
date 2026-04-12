@@ -179,7 +179,7 @@ class BuildWorker(QThread):
             # Detect tool family from filename (fast fallback)
             default_tool = "general"
             fp_lower = path.lower()
-            for kw, t in [("prove", "PROVE"), ("aims", "AIMS"), ("wlcd", "WLCD")]:
+            for kw, t in []:
                 if kw in fp_lower:
                     default_tool = t
                     break

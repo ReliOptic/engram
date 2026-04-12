@@ -54,7 +54,7 @@ async def run_dreaming(persist_dir: str, export_graph: str | None):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="ZEMAS Dreaming — nightly consolidation")
+    parser = argparse.ArgumentParser(description="Engram Dreaming — nightly consolidation")
     parser.add_argument("--persist-dir", default="data/chroma_db", help="ChromaDB directory")
     parser.add_argument("--export-graph", type=str, help="Export graph to JSON file")
     args = parser.parse_args()

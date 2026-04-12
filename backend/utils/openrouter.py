@@ -1,4 +1,4 @@
-"""OpenRouter API client for ZEMAS.
+"""OpenRouter API client for Engram.
 
 Handles HTTP calls to OpenRouter's chat completions endpoint.
 Supports all models available on OpenRouter (Gemini, Claude, etc.).
@@ -32,8 +32,8 @@ class OpenRouterClient:
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
-            "HTTP-Referer": "https://github.com/zemas",
-            "X-Title": "ZEMAS",
+            "HTTP-Referer": "https://github.com/engram",
+            "X-Title": "Engram",
         }
 
         payload = {

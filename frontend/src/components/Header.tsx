@@ -20,7 +20,7 @@ export function Header({ wsStatus, syncStatus, syncPending }: HeaderProps) {
   return (
     <header style={styles.header}>
       <div style={styles.left}>
-        <span style={styles.logo}>ZEMAS</span>
+        <span style={styles.logo}>Engram</span>
         <span style={styles.subtitle}>Multi-Agent Support System</span>
       </div>
       <div style={styles.right}>
@@ -77,7 +77,7 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: '0 20px',
-    background: 'var(--zeiss-blue)',
+    background: 'var(--brand-primary)',
     color: 'var(--text-on-dark)',
     flexShrink: 0,
   },

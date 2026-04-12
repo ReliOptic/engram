@@ -72,7 +72,7 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: 'center',
     gap: '16px',
     padding: '0 24px',
-    background: 'var(--zeiss-blue)',
+    background: 'var(--brand-primary)',
     color: 'var(--text-on-dark)',
     flexShrink: 0,
   },
@@ -123,8 +123,8 @@ const styles: Record<string, React.CSSProperties> = {
     transition: 'color 0.15s, border-color 0.15s',
   },
   tabActive: {
-    color: 'var(--zeiss-blue)',
-    borderBottomColor: 'var(--zeiss-blue)',
+    color: 'var(--brand-primary)',
+    borderBottomColor: 'var(--brand-primary)',
     fontWeight: 600,
   },
   content: {

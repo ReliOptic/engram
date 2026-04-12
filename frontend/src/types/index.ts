@@ -1,4 +1,4 @@
-/** Agent roles in the ZEMAS system */
+/** Agent roles in the Engram system */
 export type AgentRole = 'analyzer' | 'finder' | 'reviewer' | 'user';
 
 /** Agent status during orchestration */

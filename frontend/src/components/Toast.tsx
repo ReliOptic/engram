@@ -64,7 +64,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 const COLORS: Record<ToastType, string> = {
   success: 'var(--color-success)',
   error: 'var(--color-error)',
-  info: 'var(--zeiss-blue)',
+  info: 'var(--brand-primary)',
 };
 
 const styles: Record<string, React.CSSProperties> = {

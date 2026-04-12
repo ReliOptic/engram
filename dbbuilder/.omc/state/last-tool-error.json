@@ -1,7 +1,7 @@
 {
   "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"source .venv/bin/activate && cd /home/reliqbit/project/ZZZ && python -c \\\"from backend.memory.preloader import SessionPreloader, SessionContext; print('preloader OK')\\\" && python -c \\\"from...",
-  "error": "Exit code 1\npreloader OK\nTraceback (most recent call last):\n  File \"<string>\", line 1, in <module>\n  File \"/home/reliqbit/project/ZZZ/backend/main.py\", line 17, in <module>\n    from fastapi import FastAPI, File, UploadFile, WebSocket, WebSocketDisconnect\nModuleNotFoundError: No module named 'fastapi'\n[rerun: b24]",
-  "timestamp": "2026-04-10T16:47:29.042Z",
+  "tool_input_preview": "{\"command\":\"ls /home/reliqbit/project/ZZZ/data/raw/weekly_reports/ 2>/dev/null; ls /home/reliqbit/project/ZZZ/data/raw/manuals/ 2>/dev/null\",\"description\":\"Check raw data files\"}",
+  "error": "Exit code 2\nCW15_Weekly_Apps.xlsx\n[rerun: b36]",
+  "timestamp": "2026-04-12T11:28:22.822Z",
   "retry_count": 1
 }

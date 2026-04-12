@@ -1,4 +1,4 @@
-"""VectorDB recording policy — chunk builders for ZEMAS.
+"""VectorDB recording policy — chunk builders for Engram.
 
 Builds structured chunks for storage in ChromaDB:
 - Type A (case_record): LLM-structured case summary on close

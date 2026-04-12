@@ -196,7 +196,7 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '8px 20px',
     borderRadius: 'var(--radius-sm)',
     border: 'none',
-    background: 'var(--zeiss-blue)',
+    background: 'var(--brand-primary)',
     color: 'var(--text-on-dark)',
     fontSize: '13px',
     fontWeight: 600,

@@ -69,7 +69,7 @@ class TestExportImport:
     def test_export_creates_zip(self, tmp_path):
         data_dir = tmp_path / "data"
         (data_dir / "sqlite").mkdir(parents=True, exist_ok=True)
-        conn = sqlite3.connect(str(data_dir / "sqlite" / "zemas.db"))
+        conn = sqlite3.connect(str(data_dir / "sqlite" / "engram.db"))
         conn.execute(
             "CREATE TABLE sessions (session_id TEXT, title TEXT, silo_account TEXT,"
             " silo_tool TEXT, silo_component TEXT, status TEXT,"
@@ -100,7 +100,7 @@ class TestExportImport:
         # Create export
         src = tmp_path / "src"
         (src / "sqlite").mkdir(parents=True)
-        conn = sqlite3.connect(str(src / "sqlite" / "zemas.db"))
+        conn = sqlite3.connect(str(src / "sqlite" / "engram.db"))
         conn.execute(
             "CREATE TABLE sessions (session_id TEXT, title TEXT, silo_account TEXT,"
             " silo_tool TEXT, silo_component TEXT, status TEXT,"
@@ -116,7 +116,7 @@ class TestExportImport:
         # Import into fresh target
         dst = tmp_path / "dst"
         (dst / "sqlite").mkdir(parents=True)
-        conn2 = sqlite3.connect(str(dst / "sqlite" / "zemas.db"))
+        conn2 = sqlite3.connect(str(dst / "sqlite" / "engram.db"))
         conn2.execute(
             "CREATE TABLE sessions (session_id TEXT, title TEXT, silo_account TEXT,"
             " silo_tool TEXT, silo_component TEXT, status TEXT,"

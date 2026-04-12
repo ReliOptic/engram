@@ -1,6 +1,6 @@
 // Regression: Keyboard shortcuts Ctrl+K and Ctrl+B were not wired up
 // Found by /qa on 2026-04-12
-// Report: .gstack/qa-reports/qa-report-zemas-2026-04-12.md
+// Report: .gstack/qa-reports/qa-report-engram-2026-04-12.md
 //
 // The useKeyboardShortcuts hook was defined with all handlers but
 // ChatPage only passed onNewChat and onStop. The remaining handlers

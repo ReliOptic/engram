@@ -16,7 +16,7 @@ def run_gui(config: DBBuilderConfig | None = None) -> int:
     if app is None:
         app = QApplication(sys.argv)
 
-    app.setApplicationName("ZEMAS DB Builder")
+    app.setApplicationName("Engram DB Builder")
     app.setApplicationVersion("0.1.0")
 
     db_path = str(config.db_path) if config else ""

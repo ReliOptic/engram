@@ -5,7 +5,7 @@ to the queue. When the sync server is reachable, pending events are
 pushed in order. If the server is offline, events accumulate locally
 and are pushed when connectivity returns.
 
-The queue lives in the same SQLite database (zemas.db) as sessions
+The queue lives in the same SQLite database (engram.db) as sessions
 and cases — no extra files to manage.
 """
 

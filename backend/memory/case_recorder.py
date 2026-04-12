@@ -10,7 +10,7 @@ Spec reference: scaffolding-plan-v3.md Section 5.1, Section 12.5
 from __future__ import annotations
 
 from backend.agents.orchestrator import AgentResponse
-from backend.knowledge.database import ZemasDB
+from backend.knowledge.database import EngramDB
 from backend.knowledge.recording_policy import build_type_a_chunk, build_type_b_chunk
 from backend.knowledge.vectordb import VectorDB
 
@@ -20,10 +20,10 @@ class CaseRecorder:
 
     If a ``SyncQueue`` is provided, case close events are queued for
     push to the sync server. This is the only integration point
-    between the existing ZEMAS flow and the Phase 3 sync system.
+    between the existing Engram flow and the Phase 3 sync system.
     """
 
-    def __init__(self, vectordb: VectorDB, db: ZemasDB | None = None, sync_queue=None):
+    def __init__(self, vectordb: VectorDB, db: EngramDB | None = None, sync_queue=None):
         self._vectordb = vectordb
         self._db = db
         self._sync_queue = sync_queue

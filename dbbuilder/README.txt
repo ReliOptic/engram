@@ -1,7 +1,7 @@
 ================================================================
-  ZEMAS DB Builder v0.1.0
+  Engram DB Builder v0.1.0
   Knowledge Base Construction Pipeline
-  for ZEISS EUV Multi-Agent Support System
+  for Engram Multi-Agent Support System
 ================================================================
 
 [Requirements]
@@ -38,11 +38,11 @@
 
   data\raw\ 폴더 아래에 문서를 넣으면 됩니다:
 
-    data\raw\manuals\      ← PDF 매뉴얼 (PROVE, AIMS 등)
+    data\raw\manuals\       ← PDF 매���얼
     data\raw\weekly_reports\ ← Weekly Report Excel 파일
-    data\raw\sops\          ← SOP Word 문서
-    data\raw\images\        ← 스캔본, 사진 (PNG, JPG 등)
-    data\raw\misc\          ← 기타 텍스트 (MD, TXT, CSV)
+    data\raw\sops\           ← SOP Word 문서
+    data\raw\images\         ← 스캔본, 사진 (PNG, JPG 등)
+    data\raw\misc\           ← 기타 텍스트 (MD, TXT, CSV)
 
   지원 파일 형식:
     .pdf .xlsx .xls .docx .png .jpg .jpeg .tiff .bmp .md .txt .csv
@@ -50,7 +50,7 @@
 
 [다른 PC로 이동]
 
-  1. ZEMAS_DB_Builder 폴더 전체를 복사
+  1. dbbuilder 폴더 전체를 복사
      (단, .venv 폴더는 빼도 됨 — 용량이 큼)
 
   2. 새 PC에서 install.bat 다시 실행
@@ -58,19 +58,19 @@
 
   3. .env 파일에 API 키 다시 입력
 
-  * ZEMAS 본체 프로젝트 없이도 독립 실행 가능
+  * Engram 본체 프로��트 없이도 독립 실행 가능
   * 처음 실행 시 config\models.json 자동 생성됨
 
 
-[폴더 구조]
+[폴더 ���조]
 
-  ZEMAS_DB_Builder\
+  dbbuilder\
     install.bat          최초 설치 (1회)
     run.bat              GUI 실행
     run_cli.bat          CLI 실행
     .env                 API 키 설정
     .env.example         설정 예시
-    src\                 소스 코드
+    src\                 ��스 코드
     tests\               테스트 코드
     docs\                기획서, 상태 문서
     data\                실행 시 자동 생성
@@ -96,7 +96,5 @@
 
 
 ================================================================
-  Author: Kiwon (Application Engineer, ZEISS Korea)
-  Phase 1 + Embedding Pipeline 구현 완료
-  Phase 2 (Parsers) 개발 중
+  Open Source — MIT License
 ================================================================

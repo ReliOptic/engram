@@ -145,7 +145,7 @@ const styles: Record<string, React.CSSProperties> = {
   totalNumber: {
     fontSize: '22px',
     fontWeight: 700,
-    color: 'var(--zeiss-blue, #141E8C)',
+    color: 'var(--brand-primary, #141E8C)',
   },
   totalLabel: {
     fontSize: '12px',

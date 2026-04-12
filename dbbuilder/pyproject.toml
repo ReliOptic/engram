@@ -3,9 +3,9 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "zemas-db-builder"
+name = "engram-db-builder"
 version = "0.1.0"
-description = "Knowledge base builder for ZEMAS - ZEISS EUV Multi-Agent Support"
+description = "Knowledge base builder for Engram - Multi-Agent Support System"
 requires-python = ">=3.11"
 dependencies = [
     # UI

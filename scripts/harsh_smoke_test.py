@@ -1,4 +1,4 @@
-"""Harsh Smoke Test — find failure thresholds across all ZEMAS subsystems.
+"""Harsh Smoke Test — find failure thresholds across all Engram subsystems.
 
 Tests edge cases, malformed inputs, boundary conditions, concurrency,
 and stress scenarios. Reports PASS/FAIL with failure details.
@@ -14,7 +14,7 @@ from pathlib import Path
 
 # Ensure project root on path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-os.environ.setdefault("ZEMAS_CONFIG_DIR", "data/config")
+os.environ.setdefault("ENGRAM_CONFIG_DIR", "data/config")
 
 RESULTS: list[dict] = []
 
@@ -34,8 +34,8 @@ def test_config():
 
     # 1-1. Missing config dir
     try:
-        old = os.environ.get("ZEMAS_CONFIG_DIR")
-        os.environ["ZEMAS_CONFIG_DIR"] = "/nonexistent/path"
+        old = os.environ.get("ENGRAM_CONFIG_DIR")
+        os.environ["ENGRAM_CONFIG_DIR"] = "/nonexistent/path"
         from importlib import reload
         import backend.config as cfg
         reload(cfg)
@@ -46,9 +46,9 @@ def test_config():
             record("config", "missing config dir raises error", True)
     finally:
         if old:
-            os.environ["ZEMAS_CONFIG_DIR"] = old
+            os.environ["ENGRAM_CONFIG_DIR"] = old
         else:
-            os.environ["ZEMAS_CONFIG_DIR"] = "data/config"
+            os.environ["ENGRAM_CONFIG_DIR"] = "data/config"
         reload(cfg)
 
     # 1-2. Valid config loads
@@ -74,7 +74,7 @@ def test_config():
         with tempfile.TemporaryDirectory() as td:
             Path(td, "models.json").write_text("{invalid json!!!")
             Path(td, "dropdowns.json").write_text("{}")
-            os.environ["ZEMAS_CONFIG_DIR"] = td
+            os.environ["ENGRAM_CONFIG_DIR"] = td
             reload(cfg)
             try:
                 cfg.load_models_config()
@@ -82,7 +82,7 @@ def test_config():
             except Exception:
                 record("config", "malformed models.json raises error", True)
     finally:
-        os.environ["ZEMAS_CONFIG_DIR"] = "data/config"
+        os.environ["ENGRAM_CONFIG_DIR"] = "data/config"
         reload(cfg)
 
     # 1-5. Empty config file
@@ -90,7 +90,7 @@ def test_config():
         with tempfile.TemporaryDirectory() as td:
             Path(td, "models.json").write_text("")
             Path(td, "dropdowns.json").write_text("")
-            os.environ["ZEMAS_CONFIG_DIR"] = td
+            os.environ["ENGRAM_CONFIG_DIR"] = td
             reload(cfg)
             try:
                 cfg.load_models_config()
@@ -98,7 +98,7 @@ def test_config():
             except Exception:
                 record("config", "empty models.json raises error", True)
     finally:
-        os.environ["ZEMAS_CONFIG_DIR"] = "data/config"
+        os.environ["ENGRAM_CONFIG_DIR"] = "data/config"
         reload(cfg)
 
 
@@ -193,7 +193,7 @@ def test_vectordb():
 
     # 2-10. Unicode/special characters in document
     try:
-        unicode_doc = "한국어 테스트 🔧 ZEMAS™ — «test» ñ ü ö ä 日本語 中文"
+        unicode_doc = "한국어 테스트 🔧 Engram™ — «test» ñ ü ö ä 日本語 中文"
         db.upsert("case_records", {"id": "unicode-doc", "document": unicode_doc, "metadata": {"lang": "multi"}})
         result = db.get_by_id("case_records", "unicode-doc")
         assert result["document"] == unicode_doc
@@ -272,10 +272,10 @@ def test_vectordb():
 # ============================================================
 def test_database():
     print("\n=== 3. DATABASE (SQLite) SUBSYSTEM ===")
-    from backend.knowledge.database import ZemasDB
+    from backend.knowledge.database import EngramDB
 
     with tempfile.TemporaryDirectory() as td:
-        db = ZemasDB(str(Path(td) / "test.db"))
+        db = EngramDB(str(Path(td) / "test.db"))
 
         # 3-1. Create case with empty fields
         try:
@@ -670,7 +670,7 @@ def test_api_endpoints():
             record("api", "POST /api/upload empty file", r.status_code == 200)
 
             # 7-9. Upload — normal file
-            content = b"Test file content for ZEMAS smoke test"
+            content = b"Test file content for Engram smoke test"
             r = await client.post("/api/upload", files={"file": ("test.txt", content, "text/plain")})
             data = r.json()
             record("api", "POST /api/upload normal file", r.status_code == 200 and data["size_bytes"] == len(content))
@@ -991,7 +991,7 @@ def test_preloader():
             pre_db.upsert("case_records", {
                 "id": f"pre-{i}",
                 "document": f"Case record {i} about ProductA stage issue " * 50,
-                "metadata": {"account": "ClientA", "tool": "ProductA", "silo_key": "SEC_PROVE_Stage"},
+                "metadata": {"account": "ClientA", "tool": "ProductA", "silo_key": "ClientA_ProductA_Stage"},
             })
         preloader = SessionPreloader(pre_db)
         ctx = asyncio.run(preloader.build_context("ClientA", "ProductA", "Module3", "stage error"))
@@ -1100,7 +1100,7 @@ def test_agent_parsing():
 # ============================================================
 def main():
     print("=" * 60)
-    print("ZEMAS HARSH SMOKE TEST")
+    print("Engram HARSH SMOKE TEST")
     print("=" * 60)
 
     test_config()
