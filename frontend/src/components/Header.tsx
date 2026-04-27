@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 
 type ConnectionStatus = 'connecting' | 'connected' | 'disconnected';
@@ -10,6 +11,8 @@ interface HeaderProps {
 }
 
 export function Header({ wsStatus, syncStatus, syncPending }: HeaderProps) {
+  const [gearHovered, setGearHovered] = useState(false);
+
   const statusColor =
     wsStatus === 'connected'
       ? 'var(--color-success)'
@@ -34,24 +37,40 @@ export function Header({ wsStatus, syncStatus, syncPending }: HeaderProps) {
             style={{
               ...styles.syncBadge,
               background:
-                syncStatus === 'synced' ? 'rgba(76,175,80,0.2)' :
-                syncStatus === 'pending' ? 'rgba(255,152,0,0.2)' :
-                'rgba(244,67,54,0.2)',
+                syncStatus === 'synced'
+                  ? 'rgba(76,175,80,0.2)'
+                  : syncStatus === 'pending'
+                    ? 'rgba(255,152,0,0.2)'
+                    : 'rgba(244,67,54,0.2)',
               color:
-                syncStatus === 'synced' ? '#4CAF50' :
-                syncStatus === 'pending' ? '#FF9800' :
-                '#F44336',
+                syncStatus === 'synced'
+                  ? '#4CAF50'
+                  : syncStatus === 'pending'
+                    ? '#FF9800'
+                    : '#F44336',
             }}
             title={
-              syncStatus === 'synced' ? 'Sync: up to date' :
-              syncStatus === 'pending' ? `Sync: ${syncPending || 0} pending` :
-              'Sync: server offline'
+              syncStatus === 'synced'
+                ? 'Sync: up to date'
+                : syncStatus === 'pending'
+                  ? `Sync: ${syncPending || 0} pending`
+                  : 'Sync: server offline'
             }
           >
             {syncStatus === 'synced' ? '↑↓' : syncStatus === 'pending' ? `↑${syncPending || ''}` : '⊘'}
           </span>
         )}
-        <Link to="/settings" style={styles.gearLink} title="Settings (Ctrl+,)">
+        <Link
+          to="/settings"
+          style={{
+            ...styles.gearLink,
+            background: gearHovered ? 'rgba(255,255,255,0.15)' : 'transparent',
+            color: gearHovered ? 'rgba(255,255,255,1)' : 'rgba(255,255,255,0.9)',
+          }}
+          title="Settings (Ctrl+,)"
+          onMouseEnter={() => setGearHovered(true)}
+          onMouseLeave={() => setGearHovered(false)}
+        >
           <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
             <path
               d="M10 12.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5z"
@@ -80,6 +99,7 @@ const styles: Record<string, React.CSSProperties> = {
     background: 'var(--brand-primary)',
     color: 'var(--text-on-dark)',
     flexShrink: 0,
+    borderBottom: '1px solid rgba(255,255,255,0.08)',
   },
   left: {
     display: 'flex',
@@ -128,7 +148,6 @@ const styles: Record<string, React.CSSProperties> = {
     width: '32px',
     height: '32px',
     borderRadius: 'var(--radius-sm)',
-    color: 'rgba(255,255,255,0.8)',
     textDecoration: 'none',
     transition: 'background 0.15s, color 0.15s',
   },
