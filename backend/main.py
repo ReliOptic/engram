@@ -93,7 +93,7 @@ def create_app() -> FastAPI:
         """Return current sync status for frontend header badge."""
         from backend.config import SYNC_SERVER_URL, SYNC_DEVICE_NAME
         if not SYNC_SERVER_URL:
-            return {"enabled": False, "status": "disabled", "pending_events": 0}
+            return {"enabled": False, "status": "disabled", "pending_events": 0, "server_url": None, "online": None}
         try:
             from backend.sync.queue import SyncQueue
             queue = SyncQueue(app.state.db._conn)

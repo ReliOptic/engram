@@ -49,7 +49,10 @@ export function useWebSocket(url: string): UseWebSocketReturn {
     ws.onclose = () => {
       if (!activeRef.current) return;
       setStatus('disconnected');
-      reconnectTimeout.current = setTimeout(connect, 3000);
+      // wsRef is null when disconnect() already scheduled a reconnect — don't overwrite it.
+      if (wsRef.current !== null) {
+        reconnectTimeout.current = setTimeout(connect, 3000);
+      }
     };
 
     ws.onerror = () => ws.close();

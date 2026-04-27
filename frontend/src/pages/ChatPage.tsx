@@ -14,7 +14,8 @@ import type { AgentMessage, AgentRole, AgentStatus, SiloSelection, SourceRef } f
 
 
 export function ChatPage() {
-  const wsUrl = `ws://${window.location.hostname}:8000/ws`;
+  const wsScheme = window.location.protocol === 'https:' ? 'wss' : 'ws';
+  const wsUrl = `${wsScheme}://${window.location.host}/ws`;
   const { status: wsStatus, send, lastMessage, disconnect } = useWebSocket(wsUrl);
 
   const [messages, setMessages] = useState<AgentMessage[]>([]);
