@@ -35,8 +35,24 @@ export function AgentPanel({ agentStatuses }: AgentPanelProps) {
       <div style={styles.cards}>
         {AGENTS.map((agent) => {
           const status = agentStatuses?.[agent.role] ?? agent.status;
+          const isActive = status === 'thinking' || status === 'processing';
+          const isDone = status === 'done';
+
+          const cardStyle: React.CSSProperties = {
+            ...styles.card,
+            ...(isActive
+              ? {
+                  borderLeft: `3px solid ${agent.color}`,
+                  paddingLeft: '9px', // compensate for thicker border
+                  background: 'var(--bg-primary)',
+                }
+              : isDone
+              ? { background: '#F0FDF4', borderColor: '#BBF7D0' }
+              : {}),
+          };
+
           return (
-            <div key={agent.role} style={styles.card}>
+            <div key={agent.role} style={cardStyle}>
               <div style={styles.cardHeader}>
                 <div
                   style={{
@@ -62,13 +78,15 @@ export function AgentPanel({ agentStatuses }: AgentPanelProps) {
 
 function StatusBadge({ status }: { status: AgentStatus }) {
   const config: Record<AgentStatus, { bg: string; text: string; label: string }> = {
-    idle: { bg: 'var(--bg-secondary)', text: 'var(--text-muted)', label: 'Idle' },
-    thinking: { bg: '#EEF2FF', text: 'var(--brand-primary)', label: 'Thinking...' },
-    done: { bg: '#ECFDF5', text: '#059669', label: 'Done' },
-    waiting: { bg: '#FFF7ED', text: '#D97706', label: 'Waiting' },
-    processing: { bg: '#EEF2FF', text: 'var(--brand-primary)', label: 'Processing...' },
+    idle:       { bg: 'var(--bg-secondary)', text: 'var(--text-muted)',    label: 'Idle' },
+    thinking:   { bg: '#EEF2FF',            text: 'var(--brand-primary)', label: 'Thinking' },
+    done:       { bg: '#DCFCE7',            text: '#15803D',              label: 'Done' },
+    waiting:    { bg: '#FFF7ED',            text: '#D97706',              label: 'Waiting' },
+    processing: { bg: '#EEF2FF',            text: 'var(--brand-primary)', label: 'Processing' },
   };
   const c = config[status];
+  const isAnimated = status === 'thinking' || status === 'processing';
+
   return (
     <span
       style={{
@@ -78,10 +96,37 @@ function StatusBadge({ status }: { status: AgentStatus }) {
         borderRadius: 'var(--radius-pill)',
         background: c.bg,
         color: c.text,
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '4px',
       }}
     >
-      {status === 'thinking' && <span style={styles.pulse} />}
-      {c.label}
+      {isAnimated ? (
+        <ThinkingDots color={c.text} />
+      ) : (
+        c.label
+      )}
+    </span>
+  );
+}
+
+function ThinkingDots({ color }: { color: string }) {
+  return (
+    <span style={{ display: 'inline-flex', gap: '3px', alignItems: 'center' }}>
+      {[0, 1, 2].map((i) => (
+        <span
+          key={i}
+          style={{
+            display: 'inline-block',
+            width: '5px',
+            height: '5px',
+            borderRadius: '50%',
+            background: color,
+            animation: 'dotPulse 1.2s ease-in-out infinite',
+            animationDelay: `${i * 0.18}s`,
+          }}
+        />
+      ))}
     </span>
   );
 }
@@ -111,6 +156,8 @@ const styles: Record<string, React.CSSProperties> = {
     background: 'var(--bg-primary)',
     borderRadius: 'var(--radius-md)',
     border: '1px solid var(--border-light)',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+    transition: 'background 0.2s, border-color 0.2s, box-shadow 0.2s',
   },
   cardHeader: {
     display: 'flex',
@@ -140,14 +187,5 @@ const styles: Record<string, React.CSSProperties> = {
   desc: {
     fontSize: '11px',
     color: 'var(--text-muted)',
-  },
-  pulse: {
-    display: 'inline-block',
-    width: '6px',
-    height: '6px',
-    borderRadius: '50%',
-    background: 'var(--brand-primary)',
-    marginRight: '4px',
-    animation: 'pulse 1.5s ease-in-out infinite',
   },
 };
