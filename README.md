@@ -1,11 +1,13 @@
 # Engram — Multi-Agent Support System
 
-Three AI agents (Analyzer, Finder, Reviewer) collaborate to diagnose technical issues,
-search past cases, and validate solutions. Knowledge accumulates automatically as you
-resolve cases — the system gets smarter the more you use it.
+Three AI agents (Analyzer, Finder, Reviewer) collaborate to diagnose technical
+issues by searching **your own** manuals, past cases, and weekly reports.
+Every chat is saved as a searchable session, and bulk-imported documentation
+becomes immediately citable by the agents.
 
-Built for field engineers, support teams, and anyone who solves recurring technical
-problems and wants their solutions to become searchable institutional knowledge.
+Built for field engineers, support teams, and anyone who solves recurring
+technical problems and wants their team's documentation to become a
+conversational knowledge base.
 
 ## Quick Start
 
@@ -26,14 +28,24 @@ sections below.
 
 ```
 You describe a problem
-    → Analyzer diagnoses root causes (with probability %)
-    → Finder searches past cases + manuals for evidence
-    → Reviewer validates the solution against official procedures
-    → Knowledge is saved for next time
+    → Analyzer  proposes weighted root causes
+    → Finder    cites past cases, weekly reports, and manuals
+    → Reviewer  maps applicable procedures and challenges weak claims
+    → Chat is saved; cited sources appear in the right panel
 ```
 
-Every resolved case becomes a searchable record. Next time a similar issue comes up,
-the agents cite your past solutions. Your team's collective experience compounds.
+The conversation is multi-turn: agents `@mention` each other, ask **you**
+for missing information, and stop when the discussion converges or after
+15 rounds.
+
+**How knowledge grows today** — be aware of what's actually wired:
+- ✅ **Bulk imports** (DB Builder for manuals/SOPs, `bootstrap.py` for
+  weekly reports) populate the case/manual stores immediately.
+- ✅ **Chat sessions** are saved to SQLite and searchable in the left
+  sidebar (rename, delete, full-text search).
+- ⚠️ **Auto-recording closed cases as new searchable case_records is
+  not yet wired into the chat UI** (the recorder + storage exist in
+  the backend; the close-case button is on the roadmap).
 
 ## Installation
 
@@ -100,14 +112,44 @@ Open <http://localhost:8000> in your browser. You should see the Engram chat UI.
 
 ### Step 5 — Add your API key
 
+You can do this either way:
+
+**A. Via the UI (recommended)**
 1. Click the gear icon (top right) or press `Ctrl+,`.
 2. Open the **API Keys** tab.
 3. Paste your OpenRouter key, click **Test** to verify, then **Save**.
 
-The key is written to a local `.env` file — no data leaves your machine except
-calls to the LLM provider you configured.
+The key is written to a local `.env` file in the repo root.
+
+**B. Via .env file** — copy the template and edit:
+
+```bash
+cp .env.example .env
+# Then edit .env and replace your-openrouter-key-here with your real key
+```
+
+Either way, no data leaves your machine except the API calls to your chosen
+LLM provider.
 
 ## Usage Guide
+
+### The screen, one-time
+
+```
+┌─ Header ───────────────────────────────────────────────────────────┐
+│ Engram               WS:connected   Sync: …      ⚙ Settings       │
+├──────────────┬────────────────────────────────────────┬────────────┤
+│ Agents       │                                        │ Knowledge  │
+│ ─────────    │           Chat Timeline                │   Stats    │
+│ Chat history │  (agent + user bubbles, @mentions,     │ ─────────  │
+│  (sessions)  │   sources, contribution tags)          │ Sources    │
+│              │                                        │ Referenced │
+│              │ ┌────────────────────────────────────┐ │            │
+│              │ │ Account ▾ Tool ▾ Component ▾  📎   │ │            │
+│              │ │ Describe your issue…       [Send]  │ │            │
+│              │ └────────────────────────────────────┘ │            │
+└──────────────┴────────────────────────────────────────┴────────────┘
+```
 
 ### Your first chat
 
@@ -115,25 +157,39 @@ calls to the LLM provider you configured.
    Component** from the cascading dropdowns. This "silo" decides which past
    cases and manuals the agents will search. (You can customise the dropdown
    tree in **Settings → Dropdowns**.)
-2. **Describe your issue.** Type a short, factual description in the input
-   box and press `Enter`. Example:
+2. **Optional: attach a file.** Click the `+` button next to the dropdowns
+   to attach logs, screenshots, or any file from your machine. The file is
+   uploaded to `data/uploads/` and its name is included with your message.
+3. **Describe your issue.** Type a short, factual description and press
+   `Enter`. Example:
    > *"PRV-4412 alarm, 3nm offset on Module 1 reads after PM. Reproducible
    > on every wafer."*
-3. **Watch the agents work.** They take turns:
-   - **Analyzer** proposes weighted root causes.
-   - **Finder** searches past cases, weekly reports, and manuals for evidence.
-   - **Reviewer** maps applicable procedures from your manuals and challenges
-     anything that doesn't fit.
-   They will sometimes `@mention` each other or ask **you** for missing
-   information — the conversation pauses until you reply.
-4. **Apply the resolution.** When the discussion converges, the right-hand
-   panel lists every source the agents cited (manuals, prior cases, weekly
-   threads). Click any source to see what they're referring to.
-5. **Close the case.** When the issue is resolved, click **Close case** and
-   add a one-line resolution. Engram automatically:
-   - Stores a structured summary (Type A) for similarity search,
-   - Keeps the raw conversation (Type B) for tacit-knowledge mining,
-   - Indexes both in ChromaDB and SQLite so the next session can find them.
+4. **Watch the agents work.** They take turns. Analyzer proposes weighted
+   root causes; Finder cites past cases / weekly reports / manuals; Reviewer
+   maps applicable procedures and challenges weak claims. They `@mention`
+   each other and may ask **you** for missing information — the discussion
+   pauses until you reply. The conversation auto-terminates when all three
+   agree there's nothing left to add (or after 15 rounds).
+5. **Read the right panel.** **Knowledge Base** stats show how much your KB
+   has grown; below it, **Sources Referenced** lists every manual / case /
+   weekly entry the agents cited so you can verify their claims.
+6. **The session is already saved.** Every chat persists to SQLite as soon
+   as you send the first message — find it in the left **Chat history**
+   sidebar. Right-click to rename or delete; type in the search box to
+   filter.
+
+> **Heads-up:** there is no "Close case" button yet. To end a session, just
+> start a new chat (`Ctrl+N`) — the previous one stays in your history.
+> Auto-promoting closed sessions to searchable `case_records` is on the
+> roadmap; today, agents only cite cases that came from DB Builder or
+> bulk imports.
+
+### Running without an API key
+
+Forgot to add a key? The system still starts. Sending a message in this
+state replies with a placeholder ("echo mode") so you can verify the UI,
+WebSocket, and storage are working. Add the key in Settings → API Keys
+to switch to real LLM responses on the next message.
 
 ### Bring in your manuals
 
@@ -166,11 +222,26 @@ python scripts/bootstrap.py --weekly path/to/your-weekly-report.xlsx
 | When | Do this |
 |---|---|
 | New chat | `Ctrl+N` |
-| Search past chats | Use the search box in the left sidebar |
+| Focus the input | `Ctrl+K` |
+| Toggle chat history sidebar | `Ctrl+B` |
 | Settings | `Ctrl+,` (gear icon) |
 | Stop the agents mid-discussion | `Escape` or **Stop** button |
-| Give a chat a name | Right-click it in the sidebar → Rename |
+| Search past chats | Type in the search box in the left sidebar |
+| Rename / delete a chat | Right-click it in the sidebar (or click `···`) |
 | Export your knowledge | `python -m backend.sync.export export --output knowledge.zip` |
+| Wipe and start fresh | Stop the server, then `rm -rf data/chroma_db data/sqlite/engram.db` |
+
+### Nightly consolidation (optional)
+
+When your knowledge base gets large, run the dreaming pipeline to dedupe
+near-duplicate chunks, surface recurring tacit signals, and rebuild the
+context graph:
+
+```bash
+python scripts/dreaming_cron.py --export-graph data/graph.json
+```
+
+Schedule it nightly via cron (Linux/macOS) or Task Scheduler (Windows).
 
 ### Development mode
 
@@ -199,10 +270,11 @@ cd frontend && npm test           # frontend (91 tests)
 | Symptom | Fix |
 |---|---|
 | Browser shows raw JSON / 404 at `/` | The frontend isn't built — run `cd frontend && npm install && npm run build`. |
-| "No matching cases" no matter what you ask | Knowledge base is empty. Import some manuals via DB Builder, or close a few cases first. |
-| Agents reply with "echo mode" placeholders | API key not configured. Open Settings → API Keys, paste, Test, Save. |
+| Agents only reply with "echo mode" placeholders | API key not configured. Open Settings → API Keys, paste, Test, Save. |
+| Finder says "no matching cases in knowledge base" | Knowledge base is empty for that silo. Import manuals via DB Builder or weekly reports via `bootstrap.py`. |
 | `ImportError: chromadb` after `git pull` | Dependencies changed. Re-run `pip install -e ".[dev]"`. |
 | Port 8000 already in use | Pick another port: `uvicorn backend.main:app --port 8001`. |
+| Need a clean slate | Stop the server, then `rm -rf data/chroma_db data/sqlite/engram.db` (this deletes ALL chats and KB chunks). |
 
 ## Architecture
 
@@ -216,10 +288,10 @@ ChromaDB (vector search)        SQLite (structured data)
 DB Builder (bulk import tool)   → Manuals, SOPs, documentation
 ```
 
-- **Offline-first**: everything runs locally, no cloud dependency
+- **Offline-first**: everything runs locally; no cloud dependency beyond the LLM provider you pick
 - **LLM-agnostic**: works with any OpenRouter or OpenAI model
-- **Knowledge grows**: cases accumulate as you work, no extra effort
-- **Team sync**: optional mini-PC server syncs cases across team members
+- **Knowledge stays yours**: ChromaDB and SQLite live in `data/` on your disk
+- **Team sync (optional)**: a mini-PC server can fan-out events across team members
 
 ## DB Builder
 
@@ -271,7 +343,7 @@ Choose components during install:
 
 ### Option B: Build from Source
 
-Requires Python 3.12+ and [Inno Setup 6](https://jrsoftware.org/isinfo.php) (for installer).
+Requires Python 3.11+ and [Inno Setup 6](https://jrsoftware.org/isinfo.php) (for installer).
 
 ```batch
 :: 1. Build both EXEs with PyInstaller
@@ -303,10 +375,12 @@ All settings are in the app UI: `http://localhost:8000/settings`
 | Key | Action |
 |-----|--------|
 | `Ctrl+N` | New chat |
-| `Ctrl+K` | Focus input |
-| `Ctrl+B` | Toggle sidebar |
-| `Ctrl+,` | Settings |
-| `Escape` | Stop agents |
+| `Ctrl+K` | Focus the message input |
+| `Ctrl+B` | Toggle the chat-history sidebar |
+| `Ctrl+,` | Open Settings |
+| `Escape` | Stop the agents (only while they're working) |
+
+> macOS users: `Cmd` works in place of `Ctrl` for all of the above.
 
 ## Tech Stack
 
