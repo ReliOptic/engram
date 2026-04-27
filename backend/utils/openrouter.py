@@ -29,6 +29,12 @@ class OpenRouterClient:
         """Call OpenRouter chat completions and return standardized response."""
         from backend.utils.llm_client import LLMResponse
 
+        if not self.api_key:
+            raise ValueError(
+                "OPENROUTER_API_KEY is not set. "
+                "Copy .env.example to .env and add your OpenRouter API key."
+            )
+
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",

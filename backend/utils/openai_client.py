@@ -29,6 +29,12 @@ class OpenAIClient:
         """Call OpenAI chat completions and return standardized response."""
         from backend.utils.llm_client import LLMResponse
 
+        if not self.api_key:
+            raise ValueError(
+                "OPENAI_API_KEY is not set. "
+                "Copy .env.example to .env and add your OpenAI API key."
+            )
+
         # Strip provider prefix if present (e.g., "openai/gpt-5.4" → "gpt-5.4")
         if model.startswith("openai/"):
             model = model[len("openai/"):]
