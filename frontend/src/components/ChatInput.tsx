@@ -25,6 +25,7 @@ export function ChatInput({ onSend, disabled, isProcessing, onStop }: ChatInputP
   const [attachments, setAttachments] = useState<UploadedFile[]>([]);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     fetch('/api/config/dropdowns')
@@ -39,14 +40,9 @@ export function ChatInput({ onSend, disabled, isProcessing, onStop }: ChatInputP
           firstAccount && firstTool
             ? data.accounts[firstAccount].tools[firstTool].components[0] ?? ''
             : '';
-        setSilo({
-          account: firstAccount,
-          tool: firstTool,
-          component: firstComponent,
-        });
+        setSilo({ account: firstAccount, tool: firstTool, component: firstComponent });
       })
       .catch(() => {
-        // Fallback: use mock dropdown data if backend is not available
         const mock: DropdownConfig = {
           accounts: {
             'Demo Client': {
@@ -62,10 +58,21 @@ export function ChatInput({ onSend, disabled, isProcessing, onStop }: ChatInputP
       });
   }, []);
 
+  // Auto-resize textarea: min 40px, max 160px
+  const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setText(e.target.value);
+    const el = textareaRef.current;
+    if (el) {
+      el.style.height = 'auto';
+      el.style.height = `${Math.min(Math.max(el.scrollHeight, 40), 160)}px`;
+    }
+  };
+
   const accounts = dropdowns ? Object.keys(dropdowns.accounts) : [];
-  const tools = silo.account && dropdowns
-    ? Object.keys(dropdowns.accounts[silo.account]?.tools ?? {})
-    : [];
+  const tools =
+    silo.account && dropdowns
+      ? Object.keys(dropdowns.accounts[silo.account]?.tools ?? {})
+      : [];
   const components =
     silo.account && silo.tool && dropdowns
       ? dropdowns.accounts[silo.account]?.tools[silo.tool]?.components ?? []
@@ -78,11 +85,7 @@ export function ChatInput({ onSend, disabled, isProcessing, onStop }: ChatInputP
       dropdowns && account && newTool
         ? dropdowns.accounts[account].tools[newTool]?.components ?? []
         : [];
-    setSilo({
-      account,
-      tool: newTool,
-      component: newComponents[0] ?? '',
-    });
+    setSilo({ account, tool: newTool, component: newComponents[0] ?? '' });
   };
 
   const handleToolChange = (tool: string) => {
@@ -123,6 +126,10 @@ export function ChatInput({ onSend, disabled, isProcessing, onStop }: ChatInputP
     onSend(text.trim(), silo, attachments.length > 0 ? attachments : undefined);
     setText('');
     setAttachments([]);
+    // Reset textarea height
+    if (textareaRef.current) {
+      textareaRef.current.style.height = '40px';
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -131,6 +138,12 @@ export function ChatInput({ onSend, disabled, isProcessing, onStop }: ChatInputP
       handleSubmit();
     }
   };
+
+  const canSend = !!text.trim() && !disabled;
+  const siloLabel =
+    silo.account && silo.tool && silo.component
+      ? `${silo.account} / ${silo.tool} / ${silo.component}`
+      : 'Select context';
 
   return (
     <div style={styles.container}>
@@ -170,12 +183,11 @@ export function ChatInput({ onSend, disabled, isProcessing, onStop }: ChatInputP
             <option key={c} value={c}>{c}</option>
           ))}
         </select>
+      </div>
 
-        <span style={styles.siloTag}>
-          {silo.account && silo.tool && silo.component
-            ? `${silo.account} / ${silo.tool} / ${silo.component}`
-            : 'Select context'}
-        </span>
+      {/* Silo context tag — own row below dropdowns */}
+      <div style={styles.siloTagRow}>
+        <span style={styles.siloTag}>{siloLabel}</span>
       </div>
 
       {/* Attachment chips */}
@@ -184,7 +196,9 @@ export function ChatInput({ onSend, disabled, isProcessing, onStop }: ChatInputP
           {attachments.map((a, i) => (
             <span key={i} style={styles.attachChip}>
               {a.filename} ({(a.size_bytes / 1024).toFixed(1)}KB)
-              <button style={styles.attachRemove} onClick={() => removeAttachment(i)}>&times;</button>
+              <button style={styles.attachRemove} onClick={() => removeAttachment(i)}>
+                &times;
+              </button>
             </span>
           ))}
         </div>
@@ -205,38 +219,57 @@ export function ChatInput({ onSend, disabled, isProcessing, onStop }: ChatInputP
           disabled={uploading || disabled}
           title="Attach file"
         >
-          {uploading ? '...' : '+'}
+          {uploading ? (
+            <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>…</span>
+          ) : (
+            <ClipIcon />
+          )}
         </button>
         <textarea
+          ref={textareaRef}
           style={styles.textarea}
           placeholder="Describe your issue..."
           value={text}
-          onChange={(e) => setText(e.target.value)}
+          onChange={handleTextChange}
           onKeyDown={handleKeyDown}
-          rows={2}
           disabled={disabled}
         />
         {isProcessing ? (
-          <button
-            style={styles.stopBtn}
-            onClick={onStop}
-          >
+          <button style={styles.stopBtn} onClick={onStop}>
             Stop
           </button>
         ) : (
           <button
             style={{
               ...styles.sendBtn,
-              opacity: !text.trim() || disabled ? 0.5 : 1,
+              opacity: canSend ? 1 : 0.5,
+              cursor: canSend ? 'pointer' : 'not-allowed',
             }}
             onClick={handleSubmit}
-            disabled={!text.trim() || disabled}
+            disabled={!canSend}
           >
             Send
           </button>
         )}
       </div>
     </div>
+  );
+}
+
+function ClipIcon() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66L9.41 17.41A2 2 0 016.59 14.6l8.49-8.48" />
+    </svg>
   );
 }
 
@@ -265,8 +298,15 @@ const styles: Record<string, React.CSSProperties> = {
     outline: 'none',
     cursor: 'pointer',
   },
+  siloTagRow: {
+    display: 'flex',
+    alignItems: 'center',
+  },
   siloTag: {
-    marginLeft: 'auto',
+    display: 'inline-block',
+    padding: '3px 10px',
+    borderRadius: 'var(--radius-pill)',
+    background: 'var(--bg-secondary)',
     fontSize: '11px',
     color: 'var(--text-muted)',
     fontWeight: 500,
@@ -282,7 +322,7 @@ const styles: Record<string, React.CSSProperties> = {
     gap: '4px',
     padding: '3px 8px',
     borderRadius: 'var(--radius-pill)',
-    background: 'var(--bg-tertiary)',
+    background: 'var(--bg-secondary)',
     fontSize: '11px',
     color: 'var(--text-secondary)',
   },
@@ -307,8 +347,6 @@ const styles: Record<string, React.CSSProperties> = {
     border: '1px solid var(--border-medium)',
     background: 'var(--bg-secondary)',
     color: 'var(--text-secondary)',
-    fontSize: '18px',
-    fontWeight: 600,
     cursor: 'pointer',
     flexShrink: 0,
     display: 'flex',
@@ -327,6 +365,9 @@ const styles: Record<string, React.CSSProperties> = {
     resize: 'none',
     outline: 'none',
     lineHeight: '1.5',
+    minHeight: '40px',
+    maxHeight: '160px',
+    overflowY: 'auto',
   },
   sendBtn: {
     padding: '10px 20px',
@@ -337,8 +378,8 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: '13px',
     fontWeight: 600,
     fontFamily: 'var(--font-family)',
-    cursor: 'pointer',
     flexShrink: 0,
+    transition: 'opacity 0.15s',
   },
   stopBtn: {
     padding: '10px 20px',
