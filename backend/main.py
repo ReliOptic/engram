@@ -60,15 +60,10 @@ class TestConnectionRequest(BaseModel):
     api_key: str
 
 
-def _get_db():
-    """Get a shared EngramDB instance."""
-    from backend.knowledge.database import EngramDB
-    db_path = _cfg.DATA_DIR / "sqlite" / "engram.db"
-    return EngramDB(str(db_path))
-
-
 def create_app() -> FastAPI:
     """Factory function for creating the FastAPI app."""
+    from backend.knowledge.database import EngramDB
+
     app = FastAPI(
         title="Engram",
         description="Multi-Agent Support System",
@@ -78,6 +73,7 @@ def create_app() -> FastAPI:
     # Load config eagerly so it's available immediately (works with test clients too)
     app.state.models_config = load_models_config()
     app.state.dropdowns_config = load_dropdowns_config()
+    app.state.db = EngramDB(str(_cfg.DATA_DIR / "sqlite" / "engram.db"))
 
     # CORS — allow all origins in development
     app.add_middleware(
@@ -99,15 +95,11 @@ def create_app() -> FastAPI:
         if not SYNC_SERVER_URL:
             return {"enabled": False, "status": "disabled", "pending_events": 0}
         try:
-            from backend.knowledge.database import EngramDB
-            db = EngramDB(str(Path(_cfg.DATA_DIR) / "sqlite" / "engram.db"))
             from backend.sync.queue import SyncQueue
-            queue = SyncQueue(db.conn)
+            queue = SyncQueue(app.state.db._conn)
             from backend.sync.client import SyncClient
             client = SyncClient(SYNC_SERVER_URL, queue, SYNC_DEVICE_NAME)
-            status = client.get_status()
-            db.close()
-            return status
+            return client.get_status()
         except Exception:
             return {"enabled": True, "status": "offline", "pending_events": 0}
 
@@ -157,27 +149,24 @@ def create_app() -> FastAPI:
                     session_id = payload.get("session_id", "")
 
                     # Auto-create session on first message if no session_id
-                    db = _get_db()
-                    try:
-                        if not session_id:
-                            session_id = db.create_session(
-                                title=text[:80],
-                                silo_account=silo.get("account", ""),
-                                silo_tool=silo.get("tool", ""),
-                                silo_component=silo.get("component", ""),
-                            )
-
-                        # Persist user message
-                        db.add_message(
-                            session_id=session_id,
-                            agent="user",
-                            content=text,
+                    db = app.state.db
+                    if not session_id:
+                        session_id = db.create_session(
+                            title=text[:80],
                             silo_account=silo.get("account", ""),
                             silo_tool=silo.get("tool", ""),
                             silo_component=silo.get("component", ""),
                         )
-                    finally:
-                        db.close()
+
+                    # Persist user message
+                    db.add_message(
+                        session_id=session_id,
+                        agent="user",
+                        content=text,
+                        silo_account=silo.get("account", ""),
+                        silo_tool=silo.get("tool", ""),
+                        silo_component=silo.get("component", ""),
+                    )
 
                     # Send acknowledgment with session_id
                     if not await _safe_send(websocket, {
@@ -220,82 +209,57 @@ def create_app() -> FastAPI:
         limit: int = 50,
     ):
         """List cases from SQLite with optional filters."""
-        from backend.knowledge.database import EngramDB
-        db_path = _cfg.DATA_DIR / "sqlite" / "engram.db"
-        if not db_path.exists():
-            return []
-        db = EngramDB(str(db_path))
-        try:
-            return db.list_cases(account=account, tool=tool, status=status, limit=limit)
-        finally:
-            db.close()
+        return app.state.db.list_cases(account=account, tool=tool, status=status, limit=limit)
 
     # --- Sessions API ---
 
     @app.post("/api/sessions")
     async def create_session(body: SessionCreate):
-        db = _get_db()
-        try:
-            session_id = db.create_session(
-                title=body.title,
-                silo_account=body.silo_account,
-                silo_tool=body.silo_tool,
-                silo_component=body.silo_component,
-            )
-            session = db.get_session(session_id)
-            return session
-        finally:
-            db.close()
+        db = app.state.db
+        session_id = db.create_session(
+            title=body.title,
+            silo_account=body.silo_account,
+            silo_tool=body.silo_tool,
+            silo_component=body.silo_component,
+        )
+        return db.get_session(session_id)
 
     @app.get("/api/sessions")
     async def list_sessions(status: str | None = None, limit: int = 50):
-        db = _get_db()
-        try:
-            return db.list_sessions(status=status, limit=limit)
-        finally:
-            db.close()
+        return app.state.db.list_sessions(status=status, limit=limit)
 
     @app.get("/api/sessions/{session_id}")
     async def get_session(session_id: str):
-        db = _get_db()
-        try:
-            session = db.get_session(session_id)
-            if not session:
-                from fastapi.responses import JSONResponse
-                return JSONResponse(status_code=404, content={"detail": "Session not found"})
-            messages = db.get_messages(session_id)
-            return {**session, "messages": messages}
-        finally:
-            db.close()
+        from fastapi.responses import JSONResponse
+        db = app.state.db
+        session = db.get_session(session_id)
+        if not session:
+            return JSONResponse(status_code=404, content={"detail": "Session not found"})
+        messages = db.get_messages(session_id)
+        return {**session, "messages": messages}
 
     @app.patch("/api/sessions/{session_id}")
     async def update_session(session_id: str, body: SessionUpdate):
-        db = _get_db()
-        try:
-            session = db.get_session(session_id)
-            if not session:
-                from fastapi.responses import JSONResponse
-                return JSONResponse(status_code=404, content={"detail": "Session not found"})
-            if body.title is not None:
-                db.update_session_title(session_id, body.title)
-            if body.status == "archived":
-                db.archive_session(session_id)
-            return db.get_session(session_id)
-        finally:
-            db.close()
+        from fastapi.responses import JSONResponse
+        db = app.state.db
+        session = db.get_session(session_id)
+        if not session:
+            return JSONResponse(status_code=404, content={"detail": "Session not found"})
+        if body.title is not None:
+            db.update_session_title(session_id, body.title)
+        if body.status == "archived":
+            db.archive_session(session_id)
+        return db.get_session(session_id)
 
     @app.delete("/api/sessions/{session_id}")
     async def delete_session(session_id: str):
-        db = _get_db()
-        try:
-            session = db.get_session(session_id)
-            if not session:
-                from fastapi.responses import JSONResponse
-                return JSONResponse(status_code=404, content={"detail": "Session not found"})
-            db.delete_session(session_id)
-            return {"ok": True}
-        finally:
-            db.close()
+        from fastapi.responses import JSONResponse
+        db = app.state.db
+        session = db.get_session(session_id)
+        if not session:
+            return JSONResponse(status_code=404, content={"detail": "Session not found"})
+        db.delete_session(session_id)
+        return {"ok": True}
 
     # --- Settings API ---
 
@@ -516,23 +480,20 @@ def create_app() -> FastAPI:
             result["collections"] = {name: 0 for name in COLLECTIONS}
 
         # Case stats from SQLite
-        db = _get_db()
         try:
-            row = db._conn.execute("SELECT COUNT(*) FROM cases").fetchone()
+            conn = app.state.db._conn
+            row = conn.execute("SELECT COUNT(*) FROM cases").fetchone()
             result["cases"]["total"] = row[0] if row else 0
 
-            row = db._conn.execute(
+            row = conn.execute(
                 "SELECT COUNT(*) FROM cases WHERE created_at > datetime('now', '-7 days')"
             ).fetchone()
             result["cases"]["recent_7d"] = row[0] if row else 0
 
-            # Session count
-            row = db._conn.execute("SELECT COUNT(*) FROM sessions").fetchone()
+            row = conn.execute("SELECT COUNT(*) FROM sessions").fetchone()
             result["sessions_total"] = row[0] if row else 0
         except Exception:
             pass
-        finally:
-            db.close()
 
         return result
 
@@ -550,7 +511,7 @@ def create_app() -> FastAPI:
         try:
             vdb = VectorDB(persist_dir=persist_dir)
             where = {"tool_family": tool} if tool else None
-            results = vdb.search(collection, q, n_results=n, where=where)
+            results = await vdb.async_search(collection, q, n_results=n, where=where)
             return {"results": results, "count": len(results)}
         except Exception as e:
             return {"results": [], "count": 0, "error": str(e)}
@@ -600,11 +561,7 @@ async def _run_orchestrator(app, websocket: WebSocket, query: str, silo: dict, s
         })
         # Persist echo message
         if session_id:
-            db = _get_db()
-            try:
-                db.add_message(session_id=session_id, agent="system", content=f"Echo: {query}")
-            finally:
-                db.close()
+            app.state.db.add_message(session_id=session_id, agent="system", content=f"Echo: {query}")
         return
 
     # Pre-load relevant context from knowledge base
@@ -668,17 +625,13 @@ async def _run_orchestrator(app, websocket: WebSocket, query: str, silo: dict, s
 
             # Persist agent message
             if session_id:
-                db = _get_db()
-                try:
-                    db.add_message(
-                        session_id=session_id,
-                        agent=response.agent,
-                        content=response.content,
-                        contribution_type=response.contribution_type,
-                        addressed_to=response.addressed_to or "",
-                    )
-                finally:
-                    db.close()
+                app.state.db.add_message(
+                    session_id=session_id,
+                    agent=response.agent,
+                    content=response.content,
+                    contribution_type=response.contribution_type,
+                    addressed_to=response.addressed_to or "",
+                )
 
         # Send done status
         await _safe_send(websocket, {

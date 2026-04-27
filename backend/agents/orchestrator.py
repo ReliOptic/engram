@@ -9,6 +9,7 @@ Spec reference: scaffolding-plan-v3.md Section 3.1 delta, Section 12.3
 
 from __future__ import annotations
 
+import asyncio
 import re
 from dataclasses import dataclass, field
 
@@ -204,13 +205,35 @@ class Orchestrator:
 
             all_passed_this_round = True
 
+            # Round 1 with standard order: all agents receive identical empty context,
+            # so run them in parallel to cut first-round latency by ~66%.
+            # Trade-off: if any agent returns ASK_STAKEHOLDER in round 1, the other
+            # agents' responses are already fetched and sent to the WebSocket client.
+            # This is acceptable because round-1 ASK_STAKEHOLDER is rare and the
+            # user still receives all initial analyses.
+            if round_count == 1 and turn_order == list(AGENT_ORDER):
+                prefetched: dict[str, AgentResponse] = dict(
+                    zip(
+                        AGENT_ORDER,
+                        await asyncio.gather(*(
+                            self._get_agent_response(name, user_query, [])
+                            for name in AGENT_ORDER
+                        )),
+                    )
+                )
+            else:
+                prefetched = {}
+
             for agent_name in turn_order:
                 if passes.get(agent_name) and contributions[agent_name] > 0:
                     continue  # Already contributed and passed
 
-                response = await self._get_agent_response(
-                    agent_name, user_query, conversation
-                )
+                if agent_name in prefetched:
+                    response = prefetched.pop(agent_name)
+                else:
+                    response = await self._get_agent_response(
+                        agent_name, user_query, conversation
+                    )
 
                 # Check for user input request
                 if (
@@ -240,9 +263,21 @@ class Orchestrator:
                 is_valid = validate_contribution(response, conversation)
 
                 if not is_valid:
-                    # Rubber-stamp or repetition — retry once
+                    # Inject rejection signal so the LLM knows why it was rejected —
+                    # prevents the same rubber-stamp on retry.
+                    rejection = AgentResponse(
+                        agent="system",
+                        contribution_type="PASS",
+                        contribution_detail="",
+                        addressed_to=f"@{agent_name.capitalize()}",
+                        content=(
+                            "Your previous response was rejected: it appeared to be a "
+                            "rubber-stamp or repetition. Please provide a genuinely "
+                            "new contribution backed by evidence or reasoning."
+                        ),
+                    )
                     response = await self._get_agent_response(
-                        agent_name, user_query, conversation
+                        agent_name, user_query, conversation + [rejection]
                     )
                     if response.contribution_type == "PASS":
                         if contributions[agent_name] > 0:

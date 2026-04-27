@@ -12,6 +12,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+import numpy as np
+
 from backend.knowledge.vectordb import VectorDB
 
 
@@ -55,47 +57,32 @@ class DedupEngine:
         col = self._vectordb._get_collection(collection_name)
 
         try:
-            all_items = col.get(limit=report.total_items)
+            all_items = col.get(
+                limit=report.total_items,
+                include=["embeddings", "documents", "metadatas"],
+            )
         except Exception:
             return report
 
-        if not all_items["ids"]:
+        ids = all_items.get("ids") or []
+        embeddings = all_items.get("embeddings")
+
+        if not ids or embeddings is None or len(embeddings) == 0:
             return report
 
-        seen_pairs: set[tuple[str, str]] = set()
+        # Build normalised embedding matrix for cosine similarity via dot product.
+        # No extra API calls — vectors are already stored in ChromaDB.
+        emb = np.array(embeddings, dtype=np.float32)
+        norms = np.linalg.norm(emb, axis=1, keepdims=True)
+        norms = np.where(norms == 0, 1.0, norms)
+        emb = emb / norms
+        sim_matrix = emb @ emb.T  # shape (N, N)
 
-        for i, doc_id in enumerate(all_items["ids"]):
-            doc = all_items["documents"][i] if all_items["documents"] else ""
-            if not doc:
-                continue
-
-            # Query for similar documents
-            try:
-                results = col.query(
-                    query_texts=[doc],
-                    n_results=min(5, len(all_items["ids"])),
-                )
-            except Exception:
-                continue
-
-            if not results["ids"] or not results["ids"][0]:
-                continue
-
-            for j, match_id in enumerate(results["ids"][0]):
-                if match_id == doc_id:
-                    continue
-
-                # Cosine distance → similarity
-                distance = results["distances"][0][j] if results["distances"] else 1.0
-                similarity = 1.0 - distance
-
-                pair = tuple(sorted([doc_id, match_id]))
-                if pair in seen_pairs:
-                    continue
-                seen_pairs.add(pair)
-
+        for i in range(len(ids)):
+            for j in range(i + 1, len(ids)):
+                similarity = float(sim_matrix[i, j])
                 if similarity >= self.NEAR_DUPLICATE_THRESHOLD:
                     report.near_duplicates_found += 1
-                    report.merge_candidates.append((doc_id, match_id, similarity))
+                    report.merge_candidates.append((ids[i], ids[j], similarity))
 
         return report

@@ -10,6 +10,7 @@ Spec reference: scaffolding-plan-v3.md Section 3.3, Section 12.7
 
 from __future__ import annotations
 
+import asyncio
 from dataclasses import dataclass, field
 
 
@@ -106,35 +107,27 @@ class SessionPreloader:
         Returns:
             SessionContext with pre-loaded data.
         """
+        where_manual = {"tool_family": tool} if tool else None
+
+        silo_cases, all_similar, weekly_entries, manual_entries = await asyncio.gather(
+            self._vectordb.async_search_by_silo(
+                "case_records", query, account, tool, component, n_results=max_silo
+            ),
+            self._vectordb.async_search(
+                "case_records", query, n_results=max_silo + max_cross
+            ),
+            self._vectordb.async_search("weekly", query, n_results=max_weekly),
+            self._vectordb.async_search(
+                "manuals", query, n_results=max_manuals, where=where_manual
+            ),
+        )
+
         context = SessionContext()
-
-        # 1. Same silo cases
-        context.silo_cases = self._vectordb.search_by_silo(
-            "case_records", query, account, tool, component,
-            n_results=max_silo,
-        )
-
-        # 2. Cross-silo: search all case_records without silo filter,
-        #    then exclude same-account results
-        all_similar = self._vectordb.search(
-            "case_records", query, n_results=max_silo + max_cross,
-        )
+        context.silo_cases = silo_cases
         silo_ids = {c["id"] for c in context.silo_cases}
         context.cross_silo_cases = [
-            c for c in all_similar
-            if c["id"] not in silo_ids
+            c for c in all_similar if c["id"] not in silo_ids
         ][:max_cross]
-
-        # 3. Weekly report entries
-        context.weekly_entries = self._vectordb.search(
-            "weekly", query, n_results=max_weekly,
-        )
-
-        # 4. Manual/SOP references — filter by tool_family
-        where = {"tool_family": tool} if tool else None
-        context.manual_entries = self._vectordb.search(
-            "manuals", query, n_results=max_manuals,
-            where=where,
-        )
-
+        context.weekly_entries = weekly_entries
+        context.manual_entries = manual_entries
         return context

@@ -16,8 +16,10 @@ Spec reference: scaffolding-plan-v3.md Section 5.1
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import logging
+import threading
 from typing import Any
 
 import chromadb
@@ -65,15 +67,18 @@ class VectorDB:
 
         self._embedding_function = embedding_function or _default_embedding_function()
         self._collections: dict[str, Any] = {}
+        self._collections_lock = threading.Lock()
 
     def _get_collection(self, name: str):
         """Get or create a collection with the shared embedding function."""
         if name not in self._collections:
-            self._collections[name] = self._client.get_or_create_collection(
-                name=name,
-                embedding_function=self._embedding_function,
-                metadata={"hnsw:space": "cosine"},
-            )
+            with self._collections_lock:
+                if name not in self._collections:
+                    self._collections[name] = self._client.get_or_create_collection(
+                        name=name,
+                        embedding_function=self._embedding_function,
+                        metadata={"hnsw:space": "cosine"},
+                    )
         return self._collections[name]
 
     def add(self, collection_name: str, chunk: dict) -> str:
@@ -167,12 +172,13 @@ class VectorDB:
         """
         col = self._get_collection(collection_name)
 
-        if col.count() == 0:
+        count = col.count()
+        if count == 0:
             return []
 
         kwargs: dict[str, Any] = {
             "query_texts": [query],
-            "n_results": min(n_results, col.count()),
+            "n_results": min(n_results, count),
         }
         if where:
             kwargs["where"] = where
@@ -249,6 +255,30 @@ class VectorDB:
         """Get the number of items in a collection."""
         col = self._get_collection(collection_name)
         return col.count()
+
+    async def async_search(
+        self,
+        collection_name: str,
+        query: str,
+        n_results: int = 10,
+        where: dict | None = None,
+    ) -> list[dict]:
+        """Non-blocking wrapper around search() for use in async contexts."""
+        return await asyncio.to_thread(self.search, collection_name, query, n_results, where)
+
+    async def async_search_by_silo(
+        self,
+        collection_name: str,
+        query: str,
+        account: str,
+        tool: str,
+        component: str | None = None,
+        n_results: int = 10,
+    ) -> list[dict]:
+        """Non-blocking wrapper around search_by_silo() for use in async contexts."""
+        return await asyncio.to_thread(
+            self.search_by_silo, collection_name, query, account, tool, component, n_results
+        )
 
     @staticmethod
     def _generate_id(text: str) -> str:
