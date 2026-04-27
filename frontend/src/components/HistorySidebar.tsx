@@ -46,14 +46,18 @@ export function HistorySidebar({
   const [menuOpen, setMenuOpen] = useState<string | null>(null);
   const [renaming, setRenaming] = useState<string | null>(null);
   const [renameText, setRenameText] = useState('');
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [newChatHovered, setNewChatHovered] = useState(false);
 
   const filtered = useMemo(() => {
     if (!search.trim()) return sessions;
     const q = search.toLowerCase();
-    return sessions.filter((s) =>
-      s.title.toLowerCase().includes(q) ||
-      s.silo_account.toLowerCase().includes(q) ||
-      s.silo_tool.toLowerCase().includes(q)
+    return sessions.filter(
+      (s) =>
+        s.title.toLowerCase().includes(q) ||
+        s.silo_account.toLowerCase().includes(q) ||
+        s.silo_tool.toLowerCase().includes(q),
     );
   }, [sessions, search]);
 
@@ -72,12 +76,34 @@ export function HistorySidebar({
     setRenaming(null);
   };
 
+  const handleDeleteRequest = (sessionId: string) => {
+    setConfirmDeleteId(sessionId);
+  };
+
+  const handleDeleteConfirm = (sessionId: string) => {
+    onDelete?.(sessionId);
+    setConfirmDeleteId(null);
+    setMenuOpen(null);
+  };
+
+  const handleDeleteCancel = () => {
+    setConfirmDeleteId(null);
+  };
+
   return (
     <div style={styles.sidebar}>
       {/* New Chat button */}
-      <button style={styles.newChatBtn} onClick={onNewChat}>
+      <button
+        style={{
+          ...styles.newChatBtn,
+          ...(newChatHovered ? styles.newChatBtnHover : {}),
+        }}
+        onClick={onNewChat}
+        onMouseEnter={() => setNewChatHovered(true)}
+        onMouseLeave={() => setNewChatHovered(false)}
+      >
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ marginRight: 6 }}>
-          <path d="M7 1V13M1 7H13" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+          <path d="M7 1V13M1 7H13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
         </svg>
         New Chat
       </button>
@@ -104,83 +130,120 @@ export function HistorySidebar({
         {groups.map((group) => (
           <div key={group.label}>
             <div style={styles.groupLabel}>{group.label}</div>
-            {group.items.map((session) => (
-              <div
-                key={session.session_id}
-                style={{
-                  ...styles.item,
-                  ...(session.session_id === currentSessionId ? styles.itemActive : {}),
-                }}
-                onClick={() => onSelect(session.session_id)}
-                onContextMenu={(e) => {
-                  e.preventDefault();
-                  setMenuOpen(menuOpen === session.session_id ? null : session.session_id);
-                }}
-              >
-                {renaming === session.session_id ? (
-                  <input
-                    style={styles.renameInput}
-                    value={renameText}
-                    onChange={(e) => setRenameText(e.target.value)}
-                    onBlur={() => handleRenameSubmit(session.session_id)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') handleRenameSubmit(session.session_id);
-                      if (e.key === 'Escape') setRenaming(null);
-                    }}
-                    autoFocus
-                    onClick={(e) => e.stopPropagation()}
-                  />
-                ) : (
-                  <div style={styles.itemContent}>
-                    <span style={styles.itemTitle}>
-                      {session.title || 'Untitled'}
-                    </span>
-                    <span style={styles.itemMeta}>
-                      {session.message_count} msg{session.message_count !== 1 ? 's' : ''}
-                      {session.silo_account ? ` · ${session.silo_account}` : ''}
-                    </span>
-                  </div>
-                )}
+            {group.items.map((session) => {
+              const isHovered = hoveredId === session.session_id;
+              const isActive = session.session_id === currentSessionId;
 
-                {/* Hover menu trigger */}
-                <button
-                  style={styles.menuBtn}
-                  onClick={(e) => {
-                    e.stopPropagation();
+              return (
+                <div
+                  key={session.session_id}
+                  style={{
+                    ...styles.item,
+                    ...(isActive ? styles.itemActive : {}),
+                    ...(isHovered && !isActive ? styles.itemHover : {}),
+                  }}
+                  onClick={() => onSelect(session.session_id)}
+                  onMouseEnter={() => setHoveredId(session.session_id)}
+                  onMouseLeave={() => {
+                    setHoveredId(null);
+                    if (menuOpen === session.session_id) {
+                      // keep menu open if user moved to it
+                    }
+                  }}
+                  onContextMenu={(e) => {
+                    e.preventDefault();
                     setMenuOpen(menuOpen === session.session_id ? null : session.session_id);
                   }}
                 >
-                  ···
-                </button>
+                  {renaming === session.session_id ? (
+                    <input
+                      style={styles.renameInput}
+                      value={renameText}
+                      onChange={(e) => setRenameText(e.target.value)}
+                      onBlur={() => handleRenameSubmit(session.session_id)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleRenameSubmit(session.session_id);
+                        if (e.key === 'Escape') setRenaming(null);
+                      }}
+                      autoFocus
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  ) : (
+                    <div style={styles.itemContent}>
+                      <span style={styles.itemTitle}>{session.title || 'Untitled'}</span>
+                      <span style={styles.itemMeta}>
+                        {session.message_count} msg{session.message_count !== 1 ? 's' : ''}
+                        {session.silo_account ? ` · ${session.silo_account}` : ''}
+                      </span>
+                    </div>
+                  )}
 
-                {/* Dropdown menu */}
-                {menuOpen === session.session_id && (
-                  <div style={styles.menu}>
-                    <button
-                      style={styles.menuItem}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleRenameStart(session);
-                      }}
-                    >
-                      Rename
-                    </button>
-                    <button
-                      style={{ ...styles.menuItem, color: 'var(--color-error)' }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setMenuOpen(null);
-                        if (window.confirm(`Delete "${session.title || 'Untitled'}"? This cannot be undone.`)) {
-                          onDelete?.(session.session_id);
-                        }
-                      }}
-                    >
-                      Delete
-                    </button>
-                  </div>
-                )}
-              </div>
-            ))}
+                  {/* Menu trigger — visible only on hover */}
+                  <button
+                    style={{
+                      ...styles.menuBtn,
+                      opacity: isHovered || menuOpen === session.session_id ? 1 : 0,
+                      pointerEvents:
+                        isHovered || menuOpen === session.session_id ? 'auto' : 'none',
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setMenuOpen(menuOpen === session.session_id ? null : session.session_id);
+                    }}
+                  >
+                    ···
+                  </button>
+
+                  {/* Dropdown menu */}
+                  {menuOpen === session.session_id && (
+                    <div style={styles.menu}>
+                      <button
+                        style={styles.menuItem}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRenameStart(session);
+                        }}
+                      >
+                        Rename
+                      </button>
+                      {confirmDeleteId === session.session_id ? (
+                        <div style={styles.confirmRow}>
+                          <span style={styles.confirmLabel}>Delete?</span>
+                          <button
+                            style={{ ...styles.confirmBtn, ...styles.confirmBtnDanger }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteConfirm(session.session_id);
+                            }}
+                          >
+                            Yes
+                          </button>
+                          <button
+                            style={{ ...styles.confirmBtn, ...styles.confirmBtnCancel }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteCancel();
+                            }}
+                          >
+                            No
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          style={{ ...styles.menuItem, color: 'var(--color-error)' }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteRequest(session.session_id);
+                          }}
+                        >
+                          Delete
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         ))}
       </div>
@@ -209,8 +272,13 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 600,
     fontFamily: 'var(--font-family)',
     cursor: 'pointer',
-    transition: 'background 0.15s, border-color 0.15s',
+    transition: 'background 0.15s, border-color 0.15s, color 0.15s',
     flexShrink: 0,
+  },
+  newChatBtnHover: {
+    background: 'var(--brand-primary)',
+    color: 'white',
+    borderColor: 'var(--brand-primary)',
   },
   searchInput: {
     padding: '6px 10px',
@@ -248,13 +316,16 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '8px 10px',
     borderRadius: 'var(--radius-md)',
     cursor: 'pointer',
-    transition: 'background 0.15s',
+    transition: 'background 0.1s',
     display: 'flex',
     alignItems: 'center',
     gap: '4px',
   },
   itemActive: {
     background: 'var(--bg-hover)',
+  },
+  itemHover: {
+    background: 'var(--bg-secondary)',
   },
   itemContent: {
     flex: 1,
@@ -286,7 +357,6 @@ const styles: Record<string, React.CSSProperties> = {
     color: 'var(--text-primary)',
   },
   menuBtn: {
-    opacity: 0.3,
     background: 'none',
     border: 'none',
     cursor: 'pointer',
@@ -309,7 +379,7 @@ const styles: Record<string, React.CSSProperties> = {
     boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
     zIndex: 10,
     overflow: 'hidden',
-    minWidth: '100px',
+    minWidth: '120px',
   },
   menuItem: {
     display: 'block',
@@ -323,5 +393,33 @@ const styles: Record<string, React.CSSProperties> = {
     cursor: 'pointer',
     textAlign: 'left',
     transition: 'background 0.1s',
+  },
+  confirmRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '4px',
+    padding: '5px 12px',
+  },
+  confirmLabel: {
+    fontSize: '11px',
+    color: 'var(--text-secondary)',
+    flex: 1,
+  },
+  confirmBtn: {
+    fontSize: '11px',
+    fontWeight: 600,
+    fontFamily: 'var(--font-family)',
+    border: 'none',
+    borderRadius: 'var(--radius-sm)',
+    padding: '3px 8px',
+    cursor: 'pointer',
+  },
+  confirmBtnDanger: {
+    background: 'var(--color-error)',
+    color: 'white',
+  },
+  confirmBtnCancel: {
+    background: 'var(--bg-secondary)',
+    color: 'var(--text-secondary)',
   },
 };
