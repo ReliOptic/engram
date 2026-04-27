@@ -39,4 +39,5 @@ Thumbs.db
 .omc/state/
 .omc/handoffs/
 .omc/worktrees/
+state/
 .pytest_cache/
