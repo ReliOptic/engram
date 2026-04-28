@@ -42,6 +42,7 @@ export function ChatPage() {
   const [terminatedReason, setTerminatedReason] = useState<string | null>(null);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [isDark, setIsDark] = useState(false);
+  const [seedText, setSeedText] = useState<string>('');
 
   // Sync status for header badge
   const [syncStatus, setSyncStatus] = useState<'disabled' | 'synced' | 'pending' | 'offline'>('disabled');
@@ -233,6 +234,10 @@ export function ChatPage() {
     document.documentElement.dataset.theme = isDark ? '' : 'dark';
   }, [isDark]);
 
+  const handleSeedClick = useCallback((text: string) => {
+    setSeedText(text);
+  }, []);
+
   // Keyboard shortcuts
   useKeyboardShortcuts({
     onNewChat: handleNewChat,
@@ -264,8 +269,8 @@ export function ChatPage() {
       }
       center={
         <>
-          <ChatTimeline messages={messages} isProcessing={isProcessing} terminatedReason={terminatedReason} sessionId={currentSessionId} onSourceBadgeClick={handleSourceBadgeClick} />
-          <ChatInput onSend={handleSend} disabled={isProcessing} isProcessing={isProcessing} onStop={handleStop} />
+          <ChatTimeline messages={messages} isProcessing={isProcessing} terminatedReason={terminatedReason} sessionId={currentSessionId} onSourceBadgeClick={handleSourceBadgeClick} onSeedClick={handleSeedClick} />
+          <ChatInput onSend={handleSend} disabled={isProcessing} isProcessing={isProcessing} onStop={handleStop} prefillText={seedText} />
         </>
       }
       right={

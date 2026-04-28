@@ -7,6 +7,7 @@ interface ChatTimelineProps {
   terminatedReason?: string | null;
   sessionId?: string | null;
   onSourceBadgeClick?: (chunkId: string) => void;
+  onSeedClick?: (text: string) => void;
 }
 
 const AGENT_COLORS: Record<AgentRole, string> = {
@@ -209,7 +210,7 @@ const SEED_PROMPTS = [
   'Validate a fix procedure',
 ];
 
-function EmptyState() {
+function EmptyState({ onSeedClick }: { onSeedClick?: (text: string) => void }) {
   return (
     <div style={styles.empty}>
       <div style={styles.emptyGlyphs}>
@@ -223,7 +224,7 @@ function EmptyState() {
       </p>
       <div style={styles.seedRow}>
         {SEED_PROMPTS.map((prompt) => (
-          <button key={prompt} style={styles.seedBtn}>
+          <button key={prompt} style={styles.seedBtn} onClick={() => onSeedClick?.(prompt)}>
             <svg width="12" height="12" viewBox="0 0 16 16" fill="none" style={{ flexShrink: 0 }}>
               <path
                 d="M8 1L9.5 5.5H14.5L10.5 8.5L12 13L8 10L4 13L5.5 8.5L1.5 5.5H6.5L8 1Z"
@@ -296,6 +297,42 @@ function SessionFooter({
 
   return (
     <div style={styles.sessionFooter}>
+      {terminatedReason && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 12,
+          padding: '12px 16px',
+          background: 'linear-gradient(135deg, var(--color-success-soft), transparent)',
+          borderBottom: '1px solid var(--border-hairline)',
+          marginBottom: 4,
+          borderRadius: 'var(--radius-sm)',
+        }}>
+          <div style={{
+            width: 32, height: 32, borderRadius: '50%',
+            background: 'var(--color-success)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            flexShrink: 0,
+            boxShadow: '0 0 0 4px rgba(58,210,163,0.18)',
+          }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+              stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M5 12l4 4 10-10"/>
+            </svg>
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>
+              케이스 종료 · 지식베이스에 저장되었습니다
+            </div>
+            {sessionId && (
+              <div style={{
+                fontSize: 11, color: 'var(--text-muted)', marginTop: 2,
+                fontFamily: 'var(--font-mono)',
+              }}>
+                {sessionId} · 향후 유사 케이스 검색에 활용됩니다
+              </div>
+            )}
+          </div>
+        </div>
+      )}
       {/* Header row */}
       <div style={styles.footerHeaderRow}>
         <div style={styles.footerSparkleIcon}>
@@ -490,6 +527,7 @@ export function ChatTimeline({
   terminatedReason,
   sessionId,
   onSourceBadgeClick,
+  onSeedClick,
 }: ChatTimelineProps) {
   const timelineRef = useRef<HTMLDivElement>(null);
 
@@ -500,7 +538,7 @@ export function ChatTimeline({
   }, [messages, isProcessing]);
 
   if (messages.length === 0) {
-    return <EmptyState />;
+    return <EmptyState onSeedClick={onSeedClick} />;
   }
 
   const showSummary = !isProcessing && terminatedReason != null && messages.length >= 1;

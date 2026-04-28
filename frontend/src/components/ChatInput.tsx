@@ -13,9 +13,10 @@ interface ChatInputProps {
   disabled?: boolean;
   isProcessing?: boolean;
   onStop?: () => void;
+  prefillText?: string;
 }
 
-export function ChatInput({ onSend, disabled, isProcessing, onStop }: ChatInputProps) {
+export function ChatInput({ onSend, disabled, isProcessing, onStop, prefillText }: ChatInputProps) {
   const [text, setText] = useState('');
   const [dropdowns, setDropdowns] = useState<DropdownConfig | null>(null);
   const [silo, setSilo] = useState<SiloSelection>({ account: '', tool: '', component: '' });
@@ -53,6 +54,18 @@ export function ChatInput({ onSend, disabled, isProcessing, onStop }: ChatInputP
         setSilo({ account: 'Demo Client', tool: 'Product A', component: 'Module 1' });
       });
   }, []);
+
+  useEffect(() => {
+    if (!prefillText) return;
+    setText(prefillText);
+    // auto-resize textarea
+    const el = textareaRef.current;
+    if (el) {
+      el.style.height = 'auto';
+      el.style.height = `${Math.min(Math.max(el.scrollHeight, 40), 160)}px`;
+      el.focus();
+    }
+  }, [prefillText]);
 
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setText(e.target.value);
