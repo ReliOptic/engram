@@ -4,6 +4,8 @@ SQLite complements ChromaDB: structured queries, case metadata,
 cost tracking, and audit logging.
 """
 
+import asyncio
+
 import pytest
 
 from backend.knowledge.database import EngramDB
@@ -107,3 +109,24 @@ async def test_cost_summary_by_model(db):
     models = {s["model"]: s for s in summary}
     assert "gpt-5.4" in models
     assert models["gpt-5.4"]["total_cost_usd"] == pytest.approx(0.008)
+
+
+async def test_shared_connection_serializes_concurrent_session_writes(db):
+    """Shared app-level SQLite connection supports concurrent thread writes."""
+    session_id = db.create_session(title="Concurrent writes")
+
+    async def add_message(i: int):
+        return await asyncio.to_thread(
+            db.add_message,
+            session_id=session_id,
+            agent="user",
+            content=f"message {i}",
+        )
+
+    row_ids = await asyncio.gather(*(add_message(i) for i in range(20)))
+
+    assert len(set(row_ids)) == 20
+    session = db.get_session(session_id)
+    assert session is not None
+    assert session["message_count"] == 20
+    assert len(db.get_messages(session_id)) == 20
