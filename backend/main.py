@@ -1050,6 +1050,21 @@ async def _run_orchestrator(app, websocket: WebSocket, query: str, silo: dict, s
                     addressed_to=response.addressed_to or "",
                 )
 
+        # Log LLM cost for this agent call
+        if session_id and llm.last_response is not None:
+            lr = llm.last_response
+            try:
+                app.state.db.log_cost(
+                    case_id=session_id,
+                    role=agent_name,
+                    model=lr.model,
+                    prompt_tokens=lr.prompt_tokens,
+                    completion_tokens=lr.completion_tokens,
+                    cost_usd=lr.estimated_cost_usd,
+                )
+            except Exception:
+                pass
+
         # Send done status
         await _safe_send(websocket, {
             "type": "status_update",

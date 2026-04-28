@@ -38,6 +38,7 @@ class LLMClient:
         self._openrouter = OpenRouterClient()
         self._openai = OpenAIClient()
         self._cost_table = config.get("cost_per_million_tokens", {})
+        self.last_response: LLMResponse | None = None
 
     async def complete(
         self,
@@ -78,6 +79,7 @@ class LLMClient:
             model, response.prompt_tokens, response.completion_tokens
         )
 
+        self.last_response = response
         return response
 
     def estimate_cost(
