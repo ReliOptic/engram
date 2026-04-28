@@ -15,6 +15,7 @@ export function useWebSocket(url: string): UseWebSocketReturn {
   const [lastMessage, setLastMessage] = useState<WsMessage | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeout = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const connectRef = useRef<() => void>(() => {});
   // Guard: prevents the onclose auto-reconnect from firing after the
   // useEffect cleanup runs. Without this, React StrictMode (which
   // unmounts + remounts to surface side effects) causes a cascade:
@@ -51,7 +52,7 @@ export function useWebSocket(url: string): UseWebSocketReturn {
       setStatus('disconnected');
       // wsRef is null when disconnect() already scheduled a reconnect — don't overwrite it.
       if (wsRef.current !== null) {
-        reconnectTimeout.current = setTimeout(connect, 3000);
+        reconnectTimeout.current = setTimeout(() => connectRef.current(), 3000);
       }
     };
 
@@ -61,8 +62,11 @@ export function useWebSocket(url: string): UseWebSocketReturn {
   }, [url]);
 
   useEffect(() => {
+    connectRef.current = connect;
     activeRef.current = true;
-    connect();
+    queueMicrotask(() => {
+      if (activeRef.current) connectRef.current();
+    });
     return () => {
       activeRef.current = false;
       clearTimeout(reconnectTimeout.current);
@@ -92,8 +96,8 @@ export function useWebSocket(url: string): UseWebSocketReturn {
     wsRef.current = null;
     setStatus('disconnected');
     // Reconnect after a short delay
-    reconnectTimeout.current = setTimeout(connect, 1000);
-  }, [connect]);
+    reconnectTimeout.current = setTimeout(() => connectRef.current(), 1000);
+  }, []);
 
   return { status, send, lastMessage, disconnect };
 }

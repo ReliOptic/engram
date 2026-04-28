@@ -12,7 +12,7 @@ export function SyncSettings() {
   const [status, setStatus] = useState<SyncStatus | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchStatus = useCallback(async () => {
+  const refreshStatus = useCallback(async () => {
     try {
       const resp = await fetch('/api/sync/status');
       if (resp.ok) setStatus(await resp.json());
@@ -20,7 +20,21 @@ export function SyncSettings() {
     setLoading(false);
   }, []);
 
-  useEffect(() => { fetchStatus(); }, [fetchStatus]);
+  useEffect(() => {
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const resp = await fetch('/api/sync/status');
+        if (!cancelled && resp.ok) setStatus(await resp.json());
+      } catch { /* offline */ }
+      if (!cancelled) setLoading(false);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   if (loading) return <p>Loading sync status...</p>;
   if (!status) return <p>Could not load sync status.</p>;
@@ -68,7 +82,7 @@ SYNC_DEVICE_NAME=My-PC`}
           <button
             onClick={async () => {
               await fetch('/api/sync/push', { method: 'POST' });
-              fetchStatus();
+              refreshStatus();
             }}
             style={btnStyle}
           >
@@ -77,7 +91,7 @@ SYNC_DEVICE_NAME=My-PC`}
           <button
             onClick={async () => {
               await fetch('/api/sync/pull', { method: 'POST' });
-              fetchStatus();
+              refreshStatus();
             }}
             style={btnStyle}
           >

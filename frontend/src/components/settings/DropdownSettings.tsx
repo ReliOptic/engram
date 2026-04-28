@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useToast } from '../Toast';
+import { useToast } from '../toast-context';
 import { Skeleton } from '../Skeleton';
 
 interface DropdownConfig {

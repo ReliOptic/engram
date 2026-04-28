@@ -74,15 +74,15 @@ export function ChatPage() {
         addressedTo: p.addressedTo as string | undefined,
         timestamp: (p.timestamp as string) || new Date().toISOString(),
       };
-      setMessages((prev) => [...prev, agentMsg]);
+      queueMicrotask(() => setMessages((prev) => [...prev, agentMsg]));
 
       // Extract sources from agent payload if available
       if (Array.isArray(p.sources)) {
-        setSources((prev) => {
+        queueMicrotask(() => setSources((prev) => {
           const existing = new Set(prev.map((s) => s.id));
           const newSources = (p.sources as SourceRef[]).filter((s) => !existing.has(s.id));
           return newSources.length > 0 ? [...prev, ...newSources] : prev;
-        });
+        }));
       }
     }
 
@@ -91,19 +91,23 @@ export function ChatPage() {
 
       // Capture session_id from backend
       if (p.session_id && typeof p.session_id === 'string' && !currentSessionId) {
-        setCurrentSessionId(p.session_id as string);
-        fetchSessions();
+        queueMicrotask(() => {
+          setCurrentSessionId(p.session_id as string);
+          fetchSessions();
+        });
       }
 
       if (p.agent && p.status) {
-        setAgentStatuses((prev) => ({
+        queueMicrotask(() => setAgentStatuses((prev) => ({
           ...prev,
           [p.agent as string]: p.status as AgentStatus,
-        }));
+        })));
       }
       if (p.status === 'complete') {
-        setAgentStatuses({ analyzer: 'done', finder: 'done', reviewer: 'done' });
-        setIsProcessing(false);
+        queueMicrotask(() => {
+          setAgentStatuses({ analyzer: 'done', finder: 'done', reviewer: 'done' });
+          setIsProcessing(false);
+        });
       }
     }
 
@@ -116,8 +120,10 @@ export function ChatPage() {
         content: `Error: ${p.message || 'Unknown error'}`,
         timestamp: new Date().toISOString(),
       };
-      setMessages((prev) => [...prev, errMsg]);
-      setIsProcessing(false);
+      queueMicrotask(() => {
+        setMessages((prev) => [...prev, errMsg]);
+        setIsProcessing(false);
+      });
     }
   }, [lastMessage, currentSessionId, fetchSessions]);
 
