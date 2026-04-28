@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ResizableLayout } from '../components/ResizableLayout';
 import { Header } from '../components/Header';
 import { AgentPanel } from '../components/AgentPanel';
@@ -24,6 +24,18 @@ export function ChatPage() {
     finder: 'idle',
     reviewer: 'idle',
   });
+  const agentMessages = useMemo<Record<string, string>>(() => {
+    const result: Record<string, string> = {};
+    for (const msg of [...messages].reverse()) {
+      if (msg.agent !== 'user' && !result[msg.agent] && msg.contributionType !== 'PASS') {
+        result[msg.agent] = msg.content.length > 80
+          ? msg.content.slice(0, 77) + '…'
+          : msg.content;
+      }
+    }
+    return result;
+  }, [messages]);
+
   const [sources, setSources] = useState<SourceRef[]>([]);
   const [activeChunk, setActiveChunk] = useState<ChunkDetail | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -239,7 +251,7 @@ export function ChatPage() {
   return (
     <ResizableLayout
       header={<Header wsStatus={wsStatus} syncStatus={syncStatus} syncPending={syncPending} onThemeToggle={handleThemeToggle} />}
-      leftTop={<AgentPanel agentStatuses={agentStatuses} />}
+      leftTop={<AgentPanel agentStatuses={agentStatuses} agentMessages={agentMessages} />}
       leftBottom={
         <HistorySidebar
           sessions={sessions}

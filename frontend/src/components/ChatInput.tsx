@@ -114,8 +114,12 @@ export function ChatInput({ onSend, disabled, isProcessing, onStop }: ChatInputP
   };
 
   const handleSubmit = () => {
-    if ((!text.trim() && attachments.length === 0) || !silo.account) return;
-    onSend(text.trim(), silo, attachments.length > 0 ? attachments : undefined);
+    if (!text.trim() && attachments.length === 0) return;
+    onSend(text.trim(), {
+      account: silo.account || '',
+      tool: silo.tool || '',
+      component: silo.component || '',
+    }, attachments.length > 0 ? attachments : undefined);
     setText('');
     setAttachments([]);
     if (textareaRef.current) textareaRef.current.style.height = '40px';

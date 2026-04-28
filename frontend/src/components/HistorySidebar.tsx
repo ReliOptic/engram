@@ -176,11 +176,18 @@ export function HistorySidebar({
                         <span style={styles.itemTimestamp}>{ts}</span>
                       </div>
                       {/* Second line: preview */}
-                      <div style={styles.itemPreview}>
-                        {session.silo_account
-                          ? `${session.silo_account} · ${session.silo_tool}`
-                          : `${session.message_count} msg${session.message_count !== 1 ? 's' : ''}`}
-                      </div>
+                      {session.preview && (
+                        <span style={{
+                          fontSize: 11, color: 'var(--text-muted)',
+                          overflow: 'hidden', textOverflow: 'ellipsis',
+                          display: '-webkit-box',
+                          WebkitLineClamp: 1,
+                          WebkitBoxOrient: 'vertical' as const,
+                          paddingLeft: 12,
+                        }}>
+                          {session.preview}
+                        </span>
+                      )}
                     </div>
                   )}
 

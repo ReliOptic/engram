@@ -25,6 +25,22 @@ const AGENT_NAMES: Record<AgentRole, string> = {
 
 const SOURCE_ID_RE = /source_id_[a-z0-9_]+/g;
 
+function formatSourceBadge(rawId: string): string {
+  const id = rawId.replace(/^source_id_/, '');
+  if (/^manual/i.test(id)) {
+    const ref = id.replace(/^manual_?/i, '').replace(/_/g, '.').replace(/\.+$/, '');
+    return `Manual §${ref || id}`;
+  }
+  if (/^case/i.test(id)) {
+    const num = id.replace(/^case_?/i, '').replace(/_.*$/, '');
+    return `Case #${num || id}`;
+  }
+  if (/^weekly/i.test(id)) {
+    return `Weekly Report`;
+  }
+  return id.slice(0, 16);
+}
+
 /** Extract source_id tokens from text, returning cleaned text and badge IDs. */
 export function parseSourceIds(text: string): { text: string; badges: string[] } {
   const badges: string[] = [];
@@ -439,7 +455,7 @@ function AgentBubble({
               onClick={() => onSourceBadgeClick?.(badge)}
               title={badge}
             >
-              {badge.replace(/^source_id_/, '')}
+              {formatSourceBadge(badge)}
             </button>
           ))}
         </div>

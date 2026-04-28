@@ -277,12 +277,20 @@ class EngramDB:
         return session_id
 
     def list_sessions(self, status: str | None = None, limit: int = 50) -> list[dict]:
-        query = "SELECT * FROM sessions WHERE 1=1"
+        query = """
+        SELECT s.*,
+          (SELECT substr(m.content, 1, 80)
+           FROM messages m
+           WHERE m.session_id = s.session_id AND m.agent = 'user'
+           ORDER BY m.id ASC LIMIT 1) AS preview
+        FROM sessions s
+        WHERE 1=1
+    """
         params: list = []
         if status:
-            query += " AND status=?"
+            query += " AND s.status=?"
             params.append(status)
-        query += " ORDER BY updated_at DESC LIMIT ?"
+        query += " ORDER BY s.updated_at DESC LIMIT ?"
         params.append(limit)
         with self._lock:
             rows = self._conn.execute(query, params).fetchall()
