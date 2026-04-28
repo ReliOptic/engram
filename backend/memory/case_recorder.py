@@ -9,6 +9,8 @@ Spec reference: scaffolding-plan-v3.md Section 5.1, Section 12.5
 
 from __future__ import annotations
 
+import asyncio
+
 from backend.agents.orchestrator import AgentResponse
 from backend.knowledge.database import EngramDB
 from backend.knowledge.recording_policy import build_type_a_chunk, build_type_b_chunk
@@ -46,8 +48,10 @@ class CaseRecorder:
         type_a = build_type_a_chunk(case_metadata, conversation)
         type_b = build_type_b_chunk(case_metadata, conversation)
 
-        type_a_id = self._vectordb.upsert("case_records", type_a)
-        type_b_id = self._vectordb.upsert("traces", type_b)
+        type_a_id, type_b_id = await asyncio.gather(
+            asyncio.to_thread(self._vectordb.upsert, "case_records", type_a),
+            asyncio.to_thread(self._vectordb.upsert, "traces", type_b),
+        )
 
         # SQLite: structured metadata
         if self._db:

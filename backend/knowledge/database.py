@@ -128,6 +128,22 @@ class EngramDB:
                 CREATE INDEX IF NOT EXISTS idx_sessions_status ON sessions(status);
                 CREATE INDEX IF NOT EXISTS idx_sessions_updated ON sessions(updated_at);
                 CREATE INDEX IF NOT EXISTS idx_messages_session ON messages(session_id);
+
+                CREATE TABLE IF NOT EXISTS dreaming_log (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    ran_at TEXT NOT NULL,
+                    status TEXT NOT NULL,
+                    error_msg TEXT
+                );
+
+                CREATE TABLE IF NOT EXISTS case_feedback (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    session_id TEXT NOT NULL UNIQUE,
+                    helpful INTEGER NOT NULL,
+                    timestamp TEXT NOT NULL
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_feedback_session ON case_feedback(session_id);
             """)
 
     # --- Cases ---
@@ -288,6 +304,15 @@ class EngramDB:
             )
             self._conn.commit()
 
+    def close_session(self, session_id: str) -> None:
+        now = datetime.now(tz=UTC).isoformat()
+        with self._lock:
+            self._conn.execute(
+                "UPDATE sessions SET status='closed', updated_at=? WHERE session_id=?",
+                (now, session_id),
+            )
+            self._conn.commit()
+
     def archive_session(self, session_id: str) -> None:
         now = datetime.now(tz=UTC).isoformat()
         with self._lock:
@@ -338,6 +363,46 @@ class EngramDB:
                 (session_id,),
             ).fetchall()
         return [dict(r) for r in rows]
+
+    # --- Dreaming Log ---
+
+    def record_dreaming_run(self, status: str, error_msg: str | None = None) -> None:
+        now = datetime.now(tz=UTC).isoformat()
+        with self._lock:
+            self._conn.execute(
+                "INSERT INTO dreaming_log (ran_at, status, error_msg) VALUES (?, ?, ?)",
+                (now, status, error_msg),
+            )
+            self._conn.commit()
+
+    def get_last_dreaming_run(self) -> dict | None:
+        with self._lock:
+            row = self._conn.execute(
+                "SELECT ran_at, status, error_msg FROM dreaming_log ORDER BY id DESC LIMIT 1"
+            ).fetchone()
+        return dict(row) if row else None
+
+    # --- Case Feedback ---
+
+    def record_feedback(self, session_id: str, helpful: bool) -> dict:
+        now = datetime.now(tz=UTC).isoformat()
+        with self._lock:
+            self._conn.execute(
+                "INSERT INTO case_feedback (session_id, helpful, timestamp) VALUES (?, ?, ?)",
+                (session_id, 1 if helpful else 0, now),
+            )
+            self._conn.commit()
+        return {"helpful": helpful, "timestamp": now}
+
+    def get_feedback(self, session_id: str) -> dict | None:
+        with self._lock:
+            row = self._conn.execute(
+                "SELECT helpful, timestamp FROM case_feedback WHERE session_id=?",
+                (session_id,),
+            ).fetchone()
+        if row is None:
+            return None
+        return {"helpful": bool(row["helpful"]), "timestamp": row["timestamp"]}
 
     def close(self):
         with self._lock:

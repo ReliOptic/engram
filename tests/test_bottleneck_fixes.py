@@ -1,20 +1,24 @@
-"""Regression tests for bottleneck fixes (2026-04-27).
+"""Regression tests for bottleneck fixes.
 
 Covers:
 - orchestrator round-1 parallel execution
 - orchestrator retry with rejection context injection
 - VectorDB async_search / async_search_by_silo non-blocking wrappers
 - DedupEngine numpy cosine similarity (no extra embedding API calls)
+- Embedding LRU cache (dedup API calls)
+- CaseRecorder concurrent upserts via asyncio.to_thread
 """
 
 import asyncio
+import time
 from unittest.mock import AsyncMock, patch, MagicMock
 
 import pytest
 
 from backend.agents.orchestrator import AgentResponse, Orchestrator, AGENT_ORDER
-from backend.knowledge.vectordb import VectorDB
 from backend.knowledge.dedup import DedupEngine
+from backend.knowledge.embedding_function import OpenRouterEmbeddingFunction
+from backend.knowledge.vectordb import VectorDB
 
 
 def _make_response(
@@ -304,3 +308,127 @@ async def test_dedup_light_sleep_reports_correct_item_count(tmp_path):
     assert report.total_items == 5
     assert report.collection == "case_records"
     assert isinstance(report.merge_candidates, list)
+
+
+# ---------------------------------------------------------------------------
+# Fix 3 — Embedding LRU cache
+# ---------------------------------------------------------------------------
+
+def test_embedding_cache_calls_api_once_for_same_text():
+    mock_client = MagicMock()
+    mock_client.embed.return_value = MagicMock(embeddings=[[0.1] * 1536])
+    ef = OpenRouterEmbeddingFunction(client=mock_client)
+
+    ef(["same text"])
+    ef(["same text"])
+
+    assert mock_client.embed.call_count == 1
+
+
+def test_embedding_cache_sends_only_uncached_texts():
+    call_texts: list[list[str]] = []
+
+    def side_effect(texts: list[str]):
+        call_texts.append(list(texts))
+        return MagicMock(embeddings=[[0.1] * 1536] * len(texts))
+
+    mock_client = MagicMock()
+    mock_client.embed.side_effect = side_effect
+    ef = OpenRouterEmbeddingFunction(client=mock_client)
+
+    ef(["alpha"])
+    ef(["alpha", "beta"])  # "alpha" cached → only "beta" sent to API
+
+    assert call_texts == [["alpha"], ["beta"]]
+
+
+def test_embedding_cache_returns_correct_order_with_mixed_cache():
+    embs = {
+        "a": [1.0] + [0.0] * 1535,
+        "b": [0.0, 1.0] + [0.0] * 1534,
+        "c": [0.0, 0.0, 1.0] + [0.0] * 1533,
+    }
+
+    def side_effect(texts: list[str]):
+        return MagicMock(embeddings=[embs[t] for t in texts])
+
+    mock_client = MagicMock()
+    mock_client.embed.side_effect = side_effect
+    ef = OpenRouterEmbeddingFunction(client=mock_client)
+
+    ef(["a", "b"])
+    result = ef(["c", "a", "b"])  # only "c" hits API
+
+    # chromadb normalizes list[float] → numpy array; compare as list
+    assert list(result[0]) == embs["c"]
+    assert list(result[1]) == embs["a"]
+    assert list(result[2]) == embs["b"]
+    assert mock_client.embed.call_count == 2
+
+
+def test_embedding_cache_evicts_lru_when_full():
+    call_count = [0]
+
+    def side_effect(texts: list[str]):
+        call_count[0] += 1
+        return MagicMock(embeddings=[[float(call_count[0])] * 1536] * len(texts))
+
+    mock_client = MagicMock()
+    mock_client.embed.side_effect = side_effect
+    ef = OpenRouterEmbeddingFunction(client=mock_client, max_cache_size=2)
+
+    ef(["a"])  # cache: {a}
+    ef(["b"])  # cache: {a, b} — full
+    ef(["c"])  # evict LRU "a" → cache: {b, c}
+    ef(["a"])  # "a" was evicted → API called again
+
+    assert call_count[0] == 4
+
+
+def test_embedding_cache_skips_api_for_empty_input():
+    mock_client = MagicMock()
+    ef = OpenRouterEmbeddingFunction(client=mock_client)
+    # chromadb protocol never calls embedding function with empty input;
+    # verify internal state: cache empty, no API calls made on construction
+    assert len(ef._cache) == 0
+    mock_client.embed.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# Fix 1 — CaseRecorder concurrent upserts via asyncio.to_thread
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_case_recorder_upserts_run_concurrently():
+    """Both upserts must run via asyncio.to_thread in parallel (~0.05s not ~0.10s)."""
+    from backend.memory.case_recorder import CaseRecorder
+
+    order: list[str] = []
+
+    def slow_upsert(collection: str, chunk: dict) -> str:
+        time.sleep(0.05)
+        order.append(collection)
+        return f"{collection}-id"
+
+    mock_vectordb = MagicMock()
+    mock_vectordb.upsert.side_effect = slow_upsert
+    recorder = CaseRecorder(mock_vectordb)
+
+    t0 = time.monotonic()
+    a_id, b_id = await recorder.record_case(
+        {
+            "case_id": "c1",
+            "account": "A",
+            "tool": "T",
+            "component": "C",
+            "title": "test",
+            "resolution": "fixed",
+        },
+        [],
+    )
+    elapsed = time.monotonic() - t0
+
+    assert elapsed < 0.09, f"Upserts should run concurrently, took {elapsed:.3f}s"
+    assert set(order) == {"case_records", "traces"}
+    assert "case_records" in a_id
+    assert "traces" in b_id

@@ -12,7 +12,7 @@ Entry point for the backend server. Provides:
 import asyncio
 import json
 import uuid
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import logging
@@ -118,6 +118,39 @@ class TestConnectionRequest(BaseModel):
     provider: str
     api_key: str
 
+class SessionCloseRequest(BaseModel):
+    resolution: str = ""
+
+class FeedbackRequest(BaseModel):
+    helpful: bool
+
+
+async def _dreaming_loop(app: FastAPI, *, run_immediately: bool = False) -> None:  # type: ignore[type-arg]
+    """Background task: run DreamingPipeline once daily at 02:00 local time."""
+    from backend.knowledge.dreaming import DreamingPipeline
+    from backend.knowledge.vectordb import VectorDB
+
+    if not run_immediately:
+        now = datetime.now()
+        next_run = now.replace(hour=2, minute=0, second=0, microsecond=0)
+        if next_run <= now:
+            next_run += timedelta(days=1)
+        await asyncio.sleep((next_run - now).total_seconds())
+
+    while True:
+        try:
+            vdb = VectorDB(persist_dir=str(_cfg.DATA_DIR / "chroma_db"))
+            pipeline = DreamingPipeline(vdb)
+            await pipeline.run_full_cycle()
+            app.state.db.record_dreaming_run("ok")
+        except Exception as exc:
+            logger.error("Dreaming pipeline failed: %s", exc)
+            app.state.db.record_dreaming_run("failed", str(exc))
+
+        now = datetime.now()
+        next_run = now.replace(hour=2, minute=0, second=0, microsecond=0) + timedelta(days=1)
+        await asyncio.sleep((next_run - now).total_seconds())
+
 
 def create_app() -> FastAPI:
     """Factory function for creating the FastAPI app."""
@@ -128,11 +161,15 @@ def create_app() -> FastAPI:
     async def _lifespan(app: FastAPI):
         from backend.knowledge.auto_ingester import AutoIngester
         from backend.knowledge.vectordb import VectorDB
+        from backend.memory.case_recorder import CaseRecorder
         watch_dir = _cfg.DATA_DIR / "weekly_reports"
         watch_dir.mkdir(parents=True, exist_ok=True)
         vdb = VectorDB(persist_dir=str(_cfg.DATA_DIR / "chroma_db"))
         ingester = AutoIngester(watch_dir, vdb)
         asyncio.create_task(ingester.run_watcher())
+        asyncio.create_task(_dreaming_loop(app))
+        if not hasattr(app.state, "case_recorder") or app.state.case_recorder is None:
+            app.state.case_recorder = CaseRecorder(vdb, app.state.db)
         yield
 
     app = FastAPI(
@@ -287,33 +324,36 @@ def create_app() -> FastAPI:
         limit: int = 50,
     ):
         """List cases from SQLite with optional filters."""
-        return app.state.db.list_cases(account=account, tool=tool, status=status, limit=limit)
+        return await asyncio.to_thread(
+            app.state.db.list_cases, account=account, tool=tool, status=status, limit=limit
+        )
 
     # --- Sessions API ---
 
     @app.post("/api/sessions")
     async def create_session(body: SessionCreate):
         db = app.state.db
-        session_id = db.create_session(
+        session_id = await asyncio.to_thread(
+            db.create_session,
             title=body.title,
             silo_account=body.silo_account,
             silo_tool=body.silo_tool,
             silo_component=body.silo_component,
         )
-        return db.get_session(session_id)
+        return await asyncio.to_thread(db.get_session, session_id)
 
     @app.get("/api/sessions")
     async def list_sessions(status: str | None = None, limit: int = 50):
-        return app.state.db.list_sessions(status=status, limit=limit)
+        return await asyncio.to_thread(app.state.db.list_sessions, status=status, limit=limit)
 
     @app.get("/api/sessions/{session_id}")
     async def get_session(session_id: str):
         from fastapi.responses import JSONResponse
         db = app.state.db
-        session = db.get_session(session_id)
+        session = await asyncio.to_thread(db.get_session, session_id)
         if not session:
             return JSONResponse(status_code=404, content={"detail": "Session not found"})
-        messages = db.get_messages(session_id)
+        messages = await asyncio.to_thread(db.get_messages, session_id)
         return {**session, "messages": messages}
 
     @app.patch("/api/sessions/{session_id}")
@@ -338,6 +378,84 @@ def create_app() -> FastAPI:
             return JSONResponse(status_code=404, content={"detail": "Session not found"})
         db.delete_session(session_id)
         return {"ok": True}
+
+    @app.post("/api/sessions/{session_id}/feedback")
+    async def submit_feedback(session_id: str, body: FeedbackRequest):
+        from fastapi.responses import JSONResponse
+        db = app.state.db
+        if not db.get_session(session_id):
+            return JSONResponse(status_code=404, content={"detail": "Session not found"})
+        if db.get_feedback(session_id) is not None:
+            return JSONResponse(status_code=409, content={"detail": "Feedback already submitted"})
+        result = db.record_feedback(session_id, body.helpful)
+        return result
+
+    @app.get("/api/sessions/{session_id}/feedback")
+    async def get_feedback(session_id: str):
+        from fastapi.responses import JSONResponse
+        db = app.state.db
+        feedback = db.get_feedback(session_id)
+        if feedback is None:
+            return JSONResponse(status_code=404, content={"detail": "No feedback found"})
+        return feedback
+
+    @app.post("/api/sessions/{session_id}/close")
+    async def close_session(session_id: str, body: SessionCloseRequest):
+        from fastapi.responses import JSONResponse
+        db = app.state.db
+        session = db.get_session(session_id)
+        if not session:
+            return JSONResponse(status_code=404, content={"detail": "Session not found"})
+        if session["status"] == "closed":
+            return JSONResponse(status_code=409, content={"detail": "Session already closed"})
+
+        messages = db.get_messages(session_id)
+        conversation_text = "\n".join(
+            f"[{m['agent']}]: {m['content']}" for m in messages
+        )
+
+        tacit_signals: list[dict] = []
+        try:
+            from backend.utils.llm_client import LLMClient
+            from backend.knowledge.tacit_extractor import TacitExtractor
+            llm = LLMClient(app.state.models_config)
+            extractor = TacitExtractor(llm)
+            tacit_signals = await extractor.extract(conversation_text)
+        except Exception:
+            pass
+
+        from backend.agents.orchestrator import AgentResponse as _AgentResponse
+        agent_responses: list[_AgentResponse] = [
+            _AgentResponse(
+                agent=m["agent"],
+                contribution_type=m.get("contribution_type", ""),
+                contribution_detail="",
+                addressed_to=m.get("addressed_to", "") or "",
+                content=m["content"],
+            )
+            for m in messages
+        ]
+
+        case_metadata = {
+            "case_id": session_id,
+            "account": session.get("silo_account", ""),
+            "tool": session.get("silo_tool", ""),
+            "component": session.get("silo_component", ""),
+            "title": session.get("title", ""),
+            "resolution": body.resolution,
+        }
+
+        recorder = app.state.case_recorder
+        type_a_id, type_b_id = await recorder.record_case(case_metadata, agent_responses)
+
+        db.close_session(session_id)
+
+        return {
+            "status": "closed",
+            "type_a_id": type_a_id,
+            "type_b_id": type_b_id,
+            "tacit_count": len(tacit_signals),
+        }
 
     # --- Settings API ---
 
@@ -578,6 +696,78 @@ def create_app() -> FastAPI:
 
         return result
 
+    @app.get("/api/knowledge/health")
+    async def get_knowledge_health():
+        """Knowledge base health summary for the header indicator."""
+        from backend.knowledge.vectordb import VectorDB, COLLECTIONS
+
+        persist_dir = str(_cfg.DATA_DIR / "chroma_db")
+        conn = app.state.db._conn
+
+        total_chunks = 0
+        try:
+            vdb = VectorDB(persist_dir=persist_dir)
+            for name in COLLECTIONS:
+                try:
+                    total_chunks += vdb.count(name)
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+        total_cases = 0
+        try:
+            row = conn.execute(
+                "SELECT COUNT(*) FROM cases WHERE status=\'closed\'"
+            ).fetchone()
+            total_cases = row[0] if row else 0
+        except Exception:
+            pass
+
+        last_dreaming_run: str | None = None
+        dreaming_status = "never_run"
+        try:
+            row = conn.execute(
+                "SELECT run_at, status FROM dreaming_log ORDER BY id DESC LIMIT 1"
+            ).fetchone()
+            if row:
+                last_dreaming_run = row[0]
+                dreaming_status = row[1] if row[1] in ("ok", "failed") else "ok"
+        except Exception:
+            pass
+
+        weekly_files_processed = 0
+        try:
+            manifest_path = _cfg.DATA_DIR / "weekly_reports" / ".processed.json"
+            if manifest_path.exists():
+                import json as _json
+                data = _json.loads(manifest_path.read_text())
+                weekly_files_processed = len(data.get("processed", []))
+        except Exception:
+            pass
+
+        feedback_positive_rate: float | None = None
+        try:
+            total_row = conn.execute("SELECT COUNT(*) FROM case_feedback").fetchone()
+            total_fb = total_row[0] if total_row else 0
+            if total_fb > 0:
+                pos_row = conn.execute(
+                    "SELECT COUNT(*) FROM case_feedback WHERE rating=\'positive\'"
+                ).fetchone()
+                pos_count = pos_row[0] if pos_row else 0
+                feedback_positive_rate = round(pos_count / total_fb, 4)
+        except Exception:
+            pass
+
+        return {
+            "total_cases": total_cases,
+            "total_chunks": total_chunks,
+            "last_dreaming_run": last_dreaming_run,
+            "dreaming_status": dreaming_status,
+            "weekly_files_processed": weekly_files_processed,
+            "feedback_positive_rate": feedback_positive_rate,
+        }
+
     @app.get("/api/knowledge/search")
     async def search_knowledge(
         q: str,
@@ -596,6 +786,23 @@ def create_app() -> FastAPI:
             return {"results": results, "count": len(results)}
         except Exception as e:
             return {"results": [], "count": 0, "error": str(e)}
+
+    @app.get("/api/chunks/{chunk_id}")
+    async def get_chunk(chunk_id: str):
+        """Retrieve a single chunk by ID, searching all collections."""
+        from fastapi.responses import JSONResponse
+        from backend.knowledge.vectordb import VectorDB, COLLECTIONS
+
+        persist_dir = str(_cfg.DATA_DIR / "chroma_db")
+        try:
+            vdb = VectorDB(persist_dir=persist_dir)
+            for collection in COLLECTIONS:
+                chunk = vdb.get_by_id(collection, chunk_id)
+                if chunk:
+                    return {**chunk, "collection": collection}
+        except Exception as e:
+            logger.warning("chunk lookup error for %s: %s", chunk_id, e)
+        return JSONResponse(status_code=404, content={"detail": f"Chunk '{chunk_id}' not found"})
 
     @app.post("/api/knowledge/ingest")
     async def trigger_ingest():

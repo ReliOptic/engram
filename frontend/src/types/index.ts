@@ -39,6 +39,14 @@ export interface SourceRef {
   relevance: number;
 }
 
+/** A chunk retrieved from GET /api/chunks/{id} */
+export interface ChunkDetail {
+  id: string;
+  document: string;
+  metadata: Record<string, unknown>;
+  collection: string;
+}
+
 /** WebSocket message envelope */
 export interface WsMessage {
   type: 'user_message' | 'agent_message' | 'status_update' | 'error';

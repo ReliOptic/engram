@@ -10,7 +10,7 @@ import { HistorySidebar } from '../components/HistorySidebar';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { useSessions } from '../hooks/useSessions';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
-import type { AgentMessage, AgentRole, AgentStatus, SiloSelection, SourceRef } from '../types';
+import type { AgentMessage, AgentRole, AgentStatus, ChunkDetail, SiloSelection, SourceRef } from '../types';
 
 
 export function ChatPage() {
@@ -25,7 +25,9 @@ export function ChatPage() {
     reviewer: 'idle',
   });
   const [sources, setSources] = useState<SourceRef[]>([]);
+  const [activeChunk, setActiveChunk] = useState<ChunkDetail | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [terminatedReason, setTerminatedReason] = useState<string | null>(null);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
 
   // Sync status for header badge
@@ -107,6 +109,7 @@ export function ChatPage() {
         queueMicrotask(() => {
           setAgentStatuses({ analyzer: 'done', finder: 'done', reviewer: 'done' });
           setIsProcessing(false);
+          setTerminatedReason((p.terminated_reason as string) || null);
         });
       }
     }
@@ -152,11 +155,23 @@ export function ChatPage() {
     [send, currentSessionId],
   );
 
+  const handleSourceBadgeClick = useCallback(async (chunkId: string) => {
+    try {
+      const resp = await fetch(`/api/chunks/${chunkId}`);
+      if (!resp.ok) return;
+      const data: ChunkDetail = await resp.json();
+      setActiveChunk(data);
+    } catch {
+      // ignore
+    }
+  }, []);
+
   const handleNewChat = useCallback(() => {
     setMessages([]);
     setAgentStatuses({ analyzer: 'idle', finder: 'idle', reviewer: 'idle' });
     setSources([]);
     setIsProcessing(false);
+    setTerminatedReason(null);
     setCurrentSessionId(null);
   }, []);
 
@@ -231,14 +246,14 @@ export function ChatPage() {
       }
       center={
         <>
-          <ChatTimeline messages={messages} isProcessing={isProcessing} />
+          <ChatTimeline messages={messages} isProcessing={isProcessing} terminatedReason={terminatedReason} sessionId={currentSessionId} onSourceBadgeClick={handleSourceBadgeClick} />
           <ChatInput onSend={handleSend} disabled={isProcessing} isProcessing={isProcessing} onStop={handleStop} />
         </>
       }
       right={
         <>
           <KnowledgeStats />
-          <SourceSidebar sources={sources} />
+          <SourceSidebar sources={sources} activeChunk={activeChunk} onCloseChunk={() => setActiveChunk(null)} onSourceClick={handleSourceBadgeClick} />
         </>
       }
     />

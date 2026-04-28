@@ -1,8 +1,18 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 
 type ConnectionStatus = 'connecting' | 'connected' | 'disconnected';
 type SyncStatus = 'disabled' | 'synced' | 'pending' | 'offline';
+type DreamingStatus = 'ok' | 'never_run' | 'failed';
+
+interface KnowledgeHealth {
+  total_cases: number;
+  total_chunks: number;
+  last_dreaming_run: string | null;
+  dreaming_status: DreamingStatus;
+  weekly_files_processed: number;
+  feedback_positive_rate: number | null;
+}
 
 interface HeaderProps {
   wsStatus: ConnectionStatus;
@@ -12,6 +22,34 @@ interface HeaderProps {
 
 export function Header({ wsStatus, syncStatus, syncPending }: HeaderProps) {
   const [gearHovered, setGearHovered] = useState(false);
+  const [knowledgeHealth, setKnowledgeHealth] = useState<KnowledgeHealth | null>(null);
+
+  useEffect(() => {
+    const fetchHealth = () => {
+      fetch('/api/knowledge/health')
+        .then((r) => r.json())
+        .then((data: KnowledgeHealth) => setKnowledgeHealth(data))
+        .catch(() => {});
+    };
+    fetchHealth();
+    const interval = setInterval(fetchHealth, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const healthDotColor = (() => {
+    if (!knowledgeHealth) return '#9CA3AF';
+    if (knowledgeHealth.dreaming_status === 'failed') return '#F87171';
+    if (knowledgeHealth.total_cases === 0 || knowledgeHealth.dreaming_status === 'never_run') return '#FBBF24';
+    return '#4ADE80';
+  })();
+
+  const healthTooltip = (() => {
+    if (!knowledgeHealth) return '지식 베이스: 로딩 중';
+    const lastRun = knowledgeHealth.last_dreaming_run
+      ? new Date(knowledgeHealth.last_dreaming_run).toLocaleDateString('ko-KR')
+      : '미실행';
+    return `지식 베이스: ${knowledgeHealth.total_cases}건 · 마지막 정제: ${lastRun}`;
+  })();
 
   const statusColor =
     wsStatus === 'connected'
@@ -60,6 +98,19 @@ export function Header({ wsStatus, syncStatus, syncPending }: HeaderProps) {
             {syncStatus === 'synced' ? '↑↓' : syncStatus === 'pending' ? `↑${syncPending || ''}` : '⊘'}
           </span>
         )}
+        <span style={styles.healthIndicator} title={healthTooltip}>
+          <span
+            style={{
+              width: '8px',
+              height: '8px',
+              borderRadius: '50%',
+              backgroundColor: healthDotColor,
+              display: 'inline-block',
+              flexShrink: 0,
+            }}
+          />
+          <span style={styles.healthLabel}>지식</span>
+        </span>
         <Link
           to="/settings"
           style={{
@@ -150,5 +201,15 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: 'var(--radius-sm)',
     textDecoration: 'none',
     transition: 'background 0.15s, color 0.15s',
+  },
+  healthIndicator: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '4px',
+    cursor: 'default',
+  },
+  healthLabel: {
+    fontSize: '11px',
+    opacity: 0.75,
   },
 };

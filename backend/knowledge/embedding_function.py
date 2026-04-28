@@ -28,6 +28,7 @@ from __future__ import annotations
 import hashlib
 import logging
 import struct
+from collections import OrderedDict
 from typing import Any
 
 from chromadb.api.types import Documents, EmbeddingFunction, Embeddings
@@ -54,21 +55,44 @@ class OpenRouterEmbeddingFunction(EmbeddingFunction[Documents]):
         self,
         client: SyncOpenRouterEmbeddingClient | None = None,
         model: str = "openai/text-embedding-3-small",
+        max_cache_size: int = 256,
     ):
         self._client = client or SyncOpenRouterEmbeddingClient(model=model)
         self.model = model
+        self._cache: OrderedDict[str, list[float]] = OrderedDict()
+        self._max_cache_size = max_cache_size
 
     def __call__(self, input: Documents) -> Embeddings:
         if not input:
             return []
         texts = list(input)
-        result = self._client.embed(texts)
-        if len(result.embeddings) != len(texts):
-            raise RuntimeError(
-                f"Embedding count mismatch: got {len(result.embeddings)} "
-                f"for {len(texts)} inputs"
-            )
-        return result.embeddings
+
+        uncached_indices: list[int] = []
+        uncached_texts: list[str] = []
+        result_map: dict[int, list[float]] = {}
+
+        for i, text in enumerate(texts):
+            if text in self._cache:
+                self._cache.move_to_end(text)
+                result_map[i] = self._cache[text]
+            else:
+                uncached_indices.append(i)
+                uncached_texts.append(text)
+
+        if uncached_texts:
+            api_result = self._client.embed(uncached_texts)
+            if len(api_result.embeddings) != len(uncached_texts):
+                raise RuntimeError(
+                    f"Embedding count mismatch: got {len(api_result.embeddings)} "
+                    f"for {len(uncached_texts)} inputs"
+                )
+            for idx, text, emb in zip(uncached_indices, uncached_texts, api_result.embeddings):
+                if len(self._cache) >= self._max_cache_size:
+                    self._cache.popitem(last=False)
+                self._cache[text] = emb
+                result_map[idx] = emb
+
+        return [result_map[i] for i in range(len(texts))]
 
     @staticmethod
     def name() -> str:

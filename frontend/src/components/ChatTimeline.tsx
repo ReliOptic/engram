@@ -1,9 +1,12 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { AgentMessage, AgentRole } from '../types';
 
 interface ChatTimelineProps {
   messages: AgentMessage[];
   isProcessing?: boolean;
+  terminatedReason?: string | null;
+  sessionId?: string | null;
+  onSourceBadgeClick?: (chunkId: string) => void;
 }
 
 const AGENT_COLORS: Record<AgentRole, string> = {
@@ -19,6 +22,19 @@ const AGENT_NAMES: Record<AgentRole, string> = {
   reviewer: 'Reviewer',
   user: 'You',
 };
+
+
+const SOURCE_ID_RE = /source_id_[a-z0-9_]+/g;
+
+/** Extract source_id tokens from text, returning cleaned text and badge IDs. */
+export function parseSourceIds(text: string): { text: string; badges: string[] } {
+  const badges: string[] = [];
+  const cleaned = text.replace(SOURCE_ID_RE, (match) => {
+    badges.push(match);
+    return '';
+  }).replace(/  +/g, ' ').trim();
+  return { text: cleaned, badges };
+}
 
 const CONTRIBUTION_COLORS: Record<
   string,
@@ -133,9 +149,72 @@ function ThinkingIndicator() {
   );
 }
 
+// ── Session footer (summary + feedback merged) ───────────────────────────────
+
+function SessionFooter({ messages, terminatedReason, sessionId }: {
+  messages: AgentMessage[];
+  terminatedReason: string;
+  sessionId: string;
+}) {
+  const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const agentMessages = messages.filter((m) => m.agent !== 'user');
+  const counterCount = agentMessages.filter((m) => m.contributionType === 'COUNTER').length;
+  const passCount = agentMessages.filter((m) => m.contributionType === 'PASS').length;
+  const consensusCount = agentMessages.filter((m) =>
+    m.contributionType === 'NEW_EVIDENCE' ||
+    m.contributionType === 'REVISE'
+  ).length;
+
+  const lastAgentMessages = agentMessages.slice(-3);
+  const hasUnresolvedCounter = lastAgentMessages.some((m) => m.contributionType === 'COUNTER');
+
+  const submit = async (helpful: boolean) => {
+    setLoading(true);
+    try {
+      await fetch(`/api/sessions/${sessionId}/feedback`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ helpful }),
+      });
+      setSubmitted(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div style={styles.sessionFooter}>
+      <div style={styles.footerStats}>
+        <span style={styles.summaryText}>
+          합의 {consensusCount}개 · 이견 {counterCount}개 · 패스 {passCount}개
+        </span>
+        {hasUnresolvedCounter && (
+          <span style={styles.unresolvedBadge}>⚠️ 미해소 이견 있음</span>
+        )}
+        {terminatedReason === 'all_pass' && (
+          <span style={styles.resolvedBadge}>합의 완료</span>
+        )}
+      </div>
+      <div style={styles.footerFeedback}>
+        {submitted ? (
+          <span style={styles.feedbackThanks}>피드백 감사합니다</span>
+        ) : (
+          <>
+            <span style={styles.feedbackQuestion}>선례 검색이 도움이 됐나요?</span>
+            <button style={{ ...styles.feedbackBtn, ...styles.feedbackBtnYes }} onClick={() => submit(true)} disabled={loading}>예</button>
+            <button style={{ ...styles.feedbackBtn, ...styles.feedbackBtnNo }} onClick={() => submit(false)} disabled={loading}>아니오</button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Main export ──────────────────────────────────────────────────────────────
 
-export function ChatTimeline({ messages, isProcessing }: ChatTimelineProps) {
+export function ChatTimeline({ messages, isProcessing, terminatedReason, sessionId, onSourceBadgeClick }: ChatTimelineProps) {
   const timelineRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -148,19 +227,29 @@ export function ChatTimeline({ messages, isProcessing }: ChatTimelineProps) {
     return <EmptyState />;
   }
 
+  const showSummary = !isProcessing && terminatedReason != null && messages.length >= 1;
+  const showFeedback = !isProcessing && !!sessionId && terminatedReason != null;
+
   return (
     <div ref={timelineRef} style={styles.timeline}>
       {messages.map((msg) => (
-        <MessageBubble key={msg.id} message={msg} />
+        <MessageBubble key={msg.id} message={msg} onSourceBadgeClick={onSourceBadgeClick} />
       ))}
       {isProcessing && <ThinkingIndicator />}
+      {(showSummary || showFeedback) && (
+        <SessionFooter
+          messages={messages}
+          terminatedReason={terminatedReason ?? ''}
+          sessionId={sessionId ?? ''}
+        />
+      )}
     </div>
   );
 }
 
 // ── Message bubble ───────────────────────────────────────────────────────────
 
-function MessageBubble({ message }: { message: AgentMessage }) {
+function MessageBubble({ message, onSourceBadgeClick }: { message: AgentMessage; onSourceBadgeClick?: (chunkId: string) => void }) {
   const isUser = message.agent === 'user';
   const agentColor = AGENT_COLORS[message.agent] ?? 'var(--brand-primary)';
   const agentName = AGENT_NAMES[message.agent] ?? message.agent;
@@ -190,8 +279,17 @@ function MessageBubble({ message }: { message: AgentMessage }) {
     ? (CONTRIBUTION_COLORS[message.contributionType] ?? CONTRIBUTION_COLORS['PASS'])
     : null;
 
+  const isCounter = message.contributionType === 'COUNTER';
+  const isRevise = message.contributionType === 'REVISE';
+
+  const bubbleStyle: React.CSSProperties = {
+    ...styles.bubble,
+    ...(isCounter ? { borderLeft: '3px solid #FB923C', paddingLeft: '13px' } : {}),
+    ...(isRevise ? { borderLeft: '2px solid #FDE047', paddingLeft: '14px' } : {}),
+  };
+
   return (
-    <div style={styles.bubble}>
+    <div style={bubbleStyle}>
       <div style={styles.bubbleHeader}>
         <span
           style={{
@@ -202,7 +300,7 @@ function MessageBubble({ message }: { message: AgentMessage }) {
           {agentName[0]}
         </span>
         <span style={styles.agentName}>{agentName}</span>
-        {message.contributionType && ctColors && (
+        {message.contributionType && ctColors && message.contributionType !== 'COUNTER' && (
           <span
             style={{
               ...styles.tag,
@@ -213,6 +311,9 @@ function MessageBubble({ message }: { message: AgentMessage }) {
             {message.contributionType}
           </span>
         )}
+        {isCounter && (
+          <span style={styles.counterBadge}>반박</span>
+        )}
         {message.addressedTo && (
           <span style={styles.addressedTo}>
             → @{message.addressedTo.replace(/^@/, '')}
@@ -222,7 +323,28 @@ function MessageBubble({ message }: { message: AgentMessage }) {
           {new Date(message.timestamp).toLocaleTimeString()}
         </span>
       </div>
-      <div style={styles.content}>{renderContent(message.content)}</div>
+      {(() => {
+        const { text: cleanedText, badges } = parseSourceIds(message.content);
+        return (
+          <>
+            <div style={styles.content}>{renderContent(cleanedText)}</div>
+            {badges.length > 0 && (
+              <div style={styles.badgeRow}>
+                {badges.map((badge) => (
+                  <button
+                    key={badge}
+                    style={styles.sourceBadge}
+                    onClick={() => onSourceBadgeClick?.(badge)}
+                    title={badge}
+                  >
+                    {badge.replace(/^source_id_/, '')}
+                  </button>
+                ))}
+              </div>
+            )}
+          </>
+        );
+      })()}
     </div>
   );
 }
@@ -372,5 +494,112 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: '10px',
     fontWeight: 500,
     display: 'inline-block',
+  },
+  counterBadge: {
+    fontSize: '10px',
+    fontWeight: 700,
+    padding: '2px 7px',
+    borderRadius: 'var(--radius-pill)',
+    background: '#FED7AA',
+    color: '#C2410C',
+    letterSpacing: '0.2px',
+  },
+  summaryBar: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    padding: '8px 14px',
+    marginTop: '4px',
+    background: 'var(--bg-secondary)',
+    borderRadius: 'var(--radius-md)',
+    border: '1px solid var(--border-light)',
+    flexWrap: 'wrap' as const,
+  },
+  summaryText: {
+    fontSize: '12px',
+    color: 'var(--text-muted)',
+    fontWeight: 500,
+  },
+  unresolvedBadge: {
+    fontSize: '11px',
+    fontWeight: 600,
+    padding: '2px 8px',
+    borderRadius: 'var(--radius-pill)',
+    background: '#FEF3C7',
+    color: '#D97706',
+  },
+  resolvedBadge: {
+    fontSize: '11px',
+    fontWeight: 600,
+    padding: '2px 8px',
+    borderRadius: 'var(--radius-pill)',
+    background: '#DCFCE7',
+    color: '#15803D',
+  },
+  sessionFooter: {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: '8px',
+    padding: '10px 14px',
+    marginTop: '4px',
+    background: 'var(--bg-secondary)',
+    borderRadius: 'var(--radius-md)',
+    border: '1px solid var(--border-light)',
+    animation: 'fadeIn 0.2s ease',
+  },
+  footerStats: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    flexWrap: 'wrap' as const,
+  },
+  footerFeedback: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    paddingTop: '8px',
+    borderTop: '1px solid var(--border-light)',
+    flexWrap: 'wrap' as const,
+  },
+  feedbackBar: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    padding: '10px 14px',
+    marginTop: '4px',
+    background: 'var(--bg-secondary)',
+    borderRadius: 'var(--radius-md)',
+    border: '1px solid var(--border-light)',
+    flexWrap: 'wrap' as const,
+    animation: 'fadeIn 0.2s ease',
+  },
+  feedbackQuestion: {
+    fontSize: '13px',
+    color: 'var(--text-primary)',
+    fontWeight: 500,
+    flex: 1,
+  },
+  feedbackThanks: {
+    fontSize: '13px',
+    color: 'var(--text-muted)',
+    fontStyle: 'italic',
+  },
+  feedbackBtn: {
+    padding: '4px 14px',
+    borderRadius: 'var(--radius-pill)',
+    fontSize: '12px',
+    fontWeight: 600,
+    cursor: 'pointer',
+    border: '1px solid transparent',
+  },
+  feedbackBtnYes: {
+    background: '#DCFCE7',
+    color: '#15803D',
+    borderColor: '#86EFAC',
+  },
+  feedbackBtnNo: {
+    background: 'var(--bg-primary)',
+    color: 'var(--text-secondary)',
+    borderColor: 'var(--border-light)',
   },
 };
