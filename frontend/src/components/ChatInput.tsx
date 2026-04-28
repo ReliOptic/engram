@@ -18,13 +18,10 @@ interface ChatInputProps {
 export function ChatInput({ onSend, disabled, isProcessing, onStop }: ChatInputProps) {
   const [text, setText] = useState('');
   const [dropdowns, setDropdowns] = useState<DropdownConfig | null>(null);
-  const [silo, setSilo] = useState<SiloSelection>({
-    account: '',
-    tool: '',
-    component: '',
-  });
+  const [silo, setSilo] = useState<SiloSelection>({ account: '', tool: '', component: '' });
   const [attachments, setAttachments] = useState<UploadedFile[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [scopeOpen, setScopeOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -34,9 +31,7 @@ export function ChatInput({ onSend, disabled, isProcessing, onStop }: ChatInputP
       .then((data: DropdownConfig) => {
         setDropdowns(data);
         const firstAccount = Object.keys(data.accounts)[0] ?? '';
-        const firstTool = firstAccount
-          ? Object.keys(data.accounts[firstAccount].tools)[0] ?? ''
-          : '';
+        const firstTool = firstAccount ? Object.keys(data.accounts[firstAccount].tools)[0] ?? '' : '';
         const firstComponent =
           firstAccount && firstTool
             ? data.accounts[firstAccount].tools[firstTool].components[0] ?? ''
@@ -59,7 +54,6 @@ export function ChatInput({ onSend, disabled, isProcessing, onStop }: ChatInputP
       });
   }, []);
 
-  // Auto-resize textarea: min 40px, max 160px
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setText(e.target.value);
     const el = textareaRef.current;
@@ -71,9 +65,7 @@ export function ChatInput({ onSend, disabled, isProcessing, onStop }: ChatInputP
 
   const accounts = dropdowns ? Object.keys(dropdowns.accounts) : [];
   const tools =
-    silo.account && dropdowns
-      ? Object.keys(dropdowns.accounts[silo.account]?.tools ?? {})
-      : [];
+    silo.account && dropdowns ? Object.keys(dropdowns.accounts[silo.account]?.tools ?? {}) : [];
   const components =
     silo.account && silo.tool && dropdowns
       ? dropdowns.accounts[silo.account]?.tools[silo.tool]?.components ?? []
@@ -100,7 +92,6 @@ export function ChatInput({ onSend, disabled, isProcessing, onStop }: ChatInputP
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
-
     setUploading(true);
     try {
       for (const file of Array.from(files)) {
@@ -127,10 +118,7 @@ export function ChatInput({ onSend, disabled, isProcessing, onStop }: ChatInputP
     onSend(text.trim(), silo, attachments.length > 0 ? attachments : undefined);
     setText('');
     setAttachments([]);
-    // Reset textarea height
-    if (textareaRef.current) {
-      textareaRef.current.style.height = '40px';
-    }
+    if (textareaRef.current) textareaRef.current.style.height = '40px';
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -140,56 +128,74 @@ export function ChatInput({ onSend, disabled, isProcessing, onStop }: ChatInputP
     }
   };
 
-  const canSend = (!!(text.trim()) || attachments.length > 0) && !disabled;
-  const siloLabel =
-    silo.account && silo.tool && silo.component
-      ? `${silo.account} / ${silo.tool} / ${silo.component}`
-      : 'Select context';
+  const canSend = (!!text.trim() || attachments.length > 0) && !disabled;
+
+  const scopeLabel = (() => {
+    const a = silo.account ? `account/${silo.account}` : 'account/—';
+    const t = silo.tool ? `tool/${silo.tool}` : 'tool/—';
+    const c = silo.component ? `component/${silo.component}` : 'component/—';
+    return `${a} · ${t} · ${c}`;
+  })();
+
+  const inputBorderStyle: React.CSSProperties = canSend
+    ? { border: '1px solid var(--brand-primary)', boxShadow: 'var(--shadow-glow-brand)' }
+    : { border: '1px solid var(--border-soft)', boxShadow: 'none' };
 
   return (
     <div style={styles.container}>
-      {/* Cascading dropdown row */}
-      <div style={styles.dropdownRow}>
-        <select
-          style={styles.select}
-          value={silo.account}
-          onChange={(e) => handleAccountChange(e.target.value)}
+      {/* SCOPE row */}
+      <div style={styles.scopeRow}>
+        <span style={styles.scopeEyebrow}>SCOPE</span>
+        <button
+          style={styles.scopePill}
+          onClick={() => setScopeOpen((v) => !v)}
+          title="Configure scope"
         >
-          <option value="" disabled>Account</option>
-          {accounts.map((a) => (
-            <option key={a} value={a}>{a}</option>
-          ))}
-        </select>
-
-        <select
-          style={styles.select}
-          value={silo.tool}
-          onChange={(e) => handleToolChange(e.target.value)}
-          disabled={!silo.account}
-        >
-          <option value="" disabled>Tool</option>
-          {tools.map((t) => (
-            <option key={t} value={t}>{t}</option>
-          ))}
-        </select>
-
-        <select
-          style={styles.select}
-          value={silo.component}
-          onChange={(e) => setSilo({ ...silo, component: e.target.value })}
-          disabled={!silo.tool}
-        >
-          <option value="" disabled>Component</option>
-          {components.map((c) => (
-            <option key={c} value={c}>{c}</option>
-          ))}
-        </select>
+          <span style={styles.scopePillText}>{scopeLabel}</span>
+          <ChevronDownIcon />
+        </button>
+        <span style={styles.statusText}>
+          {isProcessing ? 'Agents are reasoning…' : 'Ready'}
+        </span>
       </div>
 
-      {/* Silo context tag — own row below dropdowns */}
-      <div style={styles.siloTagRow}>
-        <span style={styles.siloTag}>{siloLabel}</span>
-      </div>
+      {/* Cascading dropdowns — shown when scopeOpen */}
+      {scopeOpen && (
+        <div style={styles.dropdownRow}>
+          <select
+            style={styles.select}
+            value={silo.account}
+            onChange={(e) => handleAccountChange(e.target.value)}
+          >
+            <option value="" disabled>Account</option>
+            {accounts.map((a) => (
+              <option key={a} value={a}>{a}</option>
+            ))}
+          </select>
+          <select
+            style={styles.select}
+            value={silo.tool}
+            onChange={(e) => handleToolChange(e.target.value)}
+            disabled={!silo.account}
+          >
+            <option value="" disabled>Tool</option>
+            {tools.map((t) => (
+              <option key={t} value={t}>{t}</option>
+            ))}
+          </select>
+          <select
+            style={styles.select}
+            value={silo.component}
+            onChange={(e) => setSilo({ ...silo, component: e.target.value })}
+            disabled={!silo.tool}
+          >
+            <option value="" disabled>Component</option>
+            {components.map((c) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
+        </div>
+      )}
 
       {/* Attachment chips */}
       {attachments.length > 0 && (
@@ -211,8 +217,8 @@ export function ChatInput({ onSend, disabled, isProcessing, onStop }: ChatInputP
         </div>
       )}
 
-      {/* Text input row */}
-      <div style={styles.inputRow}>
+      {/* Unified input container */}
+      <div style={{ ...styles.inputContainer, ...inputBorderStyle }}>
         <input
           ref={fileInputRef}
           type="file"
@@ -221,7 +227,7 @@ export function ChatInput({ onSend, disabled, isProcessing, onStop }: ChatInputP
           multiple
         />
         <button
-          style={styles.uploadBtn}
+          style={styles.clipBtn}
           onClick={() => fileInputRef.current?.click()}
           disabled={uploading || disabled}
           title="Attach file"
@@ -232,6 +238,7 @@ export function ChatInput({ onSend, disabled, isProcessing, onStop }: ChatInputP
             <ClipIcon />
           )}
         </button>
+
         <textarea
           ref={textareaRef}
           style={styles.textarea}
@@ -241,21 +248,24 @@ export function ChatInput({ onSend, disabled, isProcessing, onStop }: ChatInputP
           onKeyDown={handleKeyDown}
           disabled={disabled}
         />
+
         {isProcessing ? (
           <button style={styles.stopBtn} onClick={onStop}>
-            Stop
+            <CheckIcon />
+            <span>Stop</span>
           </button>
         ) : (
           <button
             style={{
               ...styles.sendBtn,
-              opacity: canSend ? 1 : 0.5,
-              cursor: canSend ? 'pointer' : 'not-allowed',
+              ...(canSend ? styles.sendBtnActive : styles.sendBtnInactive),
             }}
             onClick={handleSubmit}
             disabled={!canSend}
           >
-            Send
+            <SendIcon />
+            <span>Send</span>
+            <span style={styles.sendHint}>⏎</span>
           </button>
         )}
       </div>
@@ -280,14 +290,108 @@ function ClipIcon() {
   );
 }
 
+function SendIcon() {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <line x1="22" y1="2" x2="11" y2="13" />
+      <polygon points="22 2 15 22 11 13 2 9 22 2" />
+    </svg>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
+  );
+}
+
+function ChevronDownIcon() {
+  return (
+    <svg
+      width="12"
+      height="12"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <polyline points="6 9 12 15 18 9" />
+    </svg>
+  );
+}
+
 const styles: Record<string, React.CSSProperties> = {
   container: {
-    padding: '12px 16px',
-    borderTop: '1px solid var(--border-light)',
-    background: 'var(--bg-primary)',
+    padding: '10px 14px 12px',
+    borderTop: '1px solid var(--border-hairline)',
+    background: 'var(--surface-panel)',
     display: 'flex',
     flexDirection: 'column',
     gap: '8px',
+  },
+  scopeRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+  },
+  scopeEyebrow: {
+    fontSize: '10px',
+    fontWeight: 700,
+    letterSpacing: '1px',
+    color: 'var(--text-faint)',
+    fontFamily: 'var(--font-mono)',
+    flexShrink: 0,
+  },
+  scopePill: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '5px',
+    padding: '3px 10px',
+    borderRadius: 'var(--radius-pill)',
+    border: '1px solid var(--border-hairline)',
+    background: 'var(--surface-sunken)',
+    fontSize: '11px',
+    fontFamily: 'var(--font-mono)',
+    color: 'var(--text-secondary)',
+    cursor: 'pointer',
+    flexShrink: 1,
+    minWidth: 0,
+    overflow: 'hidden',
+  },
+  scopePillText: {
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap' as const,
+  },
+  statusText: {
+    fontSize: '11px',
+    color: 'var(--text-faint)',
+    fontFamily: 'var(--font-mono)',
+    marginLeft: 'auto',
+    flexShrink: 0,
+    whiteSpace: 'nowrap' as const,
   },
   dropdownRow: {
     display: 'flex',
@@ -298,25 +402,14 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '6px 10px',
     borderRadius: 'var(--radius-sm)',
     border: '1px solid var(--border-medium)',
-    background: 'var(--bg-primary)',
+    background: 'var(--surface-panel)',
     fontSize: '12px',
     fontFamily: 'var(--font-family)',
     color: 'var(--text-primary)',
     outline: 'none',
     cursor: 'pointer',
-  },
-  siloTagRow: {
-    display: 'flex',
-    alignItems: 'center',
-  },
-  siloTag: {
-    display: 'inline-block',
-    padding: '3px 10px',
-    borderRadius: 'var(--radius-pill)',
-    background: 'var(--bg-secondary)',
-    fontSize: '11px',
-    color: 'var(--text-muted)',
-    fontWeight: 500,
+    flex: 1,
+    minWidth: 0,
   },
   attachRow: {
     display: 'flex',
@@ -329,7 +422,7 @@ const styles: Record<string, React.CSSProperties> = {
     gap: '4px',
     padding: '3px 8px',
     borderRadius: 'var(--radius-pill)',
-    background: 'var(--bg-secondary)',
+    background: 'var(--surface-sunken)',
     fontSize: '11px',
     color: 'var(--text-secondary)',
   },
@@ -356,30 +449,34 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '0 2px',
     lineHeight: 1,
   },
-  inputRow: {
+  inputContainer: {
     display: 'flex',
-    gap: '8px',
     alignItems: 'flex-end',
+    gap: '4px',
+    borderRadius: 'var(--radius-md)',
+    padding: '6px 8px',
+    background: 'var(--surface-panel)',
+    transition: 'border-color 0.15s, box-shadow 0.15s',
   },
-  uploadBtn: {
-    width: '36px',
-    height: '36px',
+  clipBtn: {
+    width: '32px',
+    height: '32px',
     borderRadius: 'var(--radius-sm)',
-    border: '1px solid var(--border-medium)',
-    background: 'var(--bg-secondary)',
-    color: 'var(--text-secondary)',
+    border: 'none',
+    background: 'transparent',
+    color: 'var(--text-muted)',
     cursor: 'pointer',
     flexShrink: 0,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
+    transition: 'color 0.15s',
   },
   textarea: {
     flex: 1,
-    padding: '10px 12px',
-    borderRadius: 'var(--radius-md)',
-    border: '1px solid var(--border-medium)',
-    background: 'var(--bg-secondary)',
+    padding: '6px 4px',
+    border: 'none',
+    background: 'transparent',
     fontSize: '13px',
     fontFamily: 'var(--font-family)',
     color: 'var(--text-primary)',
@@ -391,27 +488,47 @@ const styles: Record<string, React.CSSProperties> = {
     overflowY: 'auto',
   },
   sendBtn: {
-    padding: '10px 20px',
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '5px',
+    padding: '7px 14px',
     borderRadius: 'var(--radius-sm)',
     border: 'none',
-    background: 'var(--brand-primary)',
-    color: 'var(--text-on-dark)',
     fontSize: '13px',
     fontWeight: 600,
     fontFamily: 'var(--font-family)',
     flexShrink: 0,
-    transition: 'opacity 0.15s',
+    transition: 'background 0.15s, color 0.15s, opacity 0.15s',
+    cursor: 'pointer',
+  },
+  sendBtnActive: {
+    background: 'var(--brand-primary)',
+    color: '#FFFFFF',
+  },
+  sendBtnInactive: {
+    background: 'var(--surface-sunken)',
+    color: 'var(--text-muted)',
+    cursor: 'not-allowed',
+  },
+  sendHint: {
+    fontFamily: 'var(--font-mono)',
+    fontSize: '11px',
+    opacity: 0.6,
   },
   stopBtn: {
-    padding: '10px 20px',
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '5px',
+    padding: '7px 14px',
     borderRadius: 'var(--radius-sm)',
     border: 'none',
-    background: '#DC2626',
-    color: '#FFFFFF',
+    background: 'var(--surface-sunken)',
+    color: 'var(--text-secondary)',
     fontSize: '13px',
     fontWeight: 600,
     fontFamily: 'var(--font-family)',
     cursor: 'pointer',
     flexShrink: 0,
+    transition: 'background 0.15s',
   },
 };

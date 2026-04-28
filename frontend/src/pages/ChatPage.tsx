@@ -29,6 +29,7 @@ export function ChatPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [terminatedReason, setTerminatedReason] = useState<string | null>(null);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  const [isDark, setIsDark] = useState(false);
 
   // Sync status for header badge
   const [syncStatus, setSyncStatus] = useState<'disabled' | 'synced' | 'pending' | 'offline'>('disabled');
@@ -215,6 +216,11 @@ export function ChatPage() {
     await renameSession(sessionId, title);
   }, [renameSession]);
 
+  const handleThemeToggle = useCallback(() => {
+    setIsDark(d => !d);
+    document.documentElement.dataset.theme = isDark ? '' : 'dark';
+  }, [isDark]);
+
   // Keyboard shortcuts
   useKeyboardShortcuts({
     onNewChat: handleNewChat,
@@ -232,7 +238,7 @@ export function ChatPage() {
 
   return (
     <ResizableLayout
-      header={<Header wsStatus={wsStatus} syncStatus={syncStatus} syncPending={syncPending} />}
+      header={<Header wsStatus={wsStatus} syncStatus={syncStatus} syncPending={syncPending} onThemeToggle={handleThemeToggle} />}
       leftTop={<AgentPanel agentStatuses={agentStatuses} />}
       leftBottom={
         <HistorySidebar

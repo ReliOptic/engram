@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 type ConnectionStatus = 'connecting' | 'connected' | 'disconnected';
 type SyncStatus = 'disabled' | 'synced' | 'pending' | 'offline';
@@ -18,11 +18,37 @@ interface HeaderProps {
   wsStatus: ConnectionStatus;
   syncStatus?: SyncStatus;
   syncPending?: number;
+  onThemeToggle?: () => void;
 }
 
-export function Header({ wsStatus, syncStatus, syncPending }: HeaderProps) {
-  const [gearHovered, setGearHovered] = useState(false);
+type ActiveTab = 'chat' | 'knowledge' | 'settings';
+
+function Icon({ d, size = 18 }: { d: string; size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d={d} />
+    </svg>
+  );
+}
+
+const MOON_PATH = 'M21 13A9 9 0 1 1 11 3a7 7 0 0 0 10 10z';
+const SETTINGS_PATHS = [
+  'M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1A1.7 1.7 0 0 0 9 19.4a1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1A1.7 1.7 0 0 0 4.6 9z',
+];
+
+export function Header({ wsStatus, syncStatus: _syncStatus, syncPending: _syncPending, onThemeToggle }: HeaderProps) {
+  const [activeTab, setActiveTab] = useState<ActiveTab>('chat');
   const [knowledgeHealth, setKnowledgeHealth] = useState<KnowledgeHealth | null>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchHealth = () => {
@@ -37,102 +63,126 @@ export function Header({ wsStatus, syncStatus, syncPending }: HeaderProps) {
   }, []);
 
   const healthDotColor = (() => {
-    if (!knowledgeHealth) return '#9CA3AF';
-    if (knowledgeHealth.dreaming_status === 'failed') return '#F87171';
-    if (knowledgeHealth.total_cases === 0 || knowledgeHealth.dreaming_status === 'never_run') return '#FBBF24';
-    return '#4ADE80';
+    if (!knowledgeHealth) return 'var(--text-faint)';
+    if (knowledgeHealth.dreaming_status === 'failed') return 'var(--color-error)';
+    if (knowledgeHealth.total_cases === 0 || knowledgeHealth.dreaming_status === 'never_run')
+      return 'var(--color-warning)';
+    return 'var(--color-success)';
   })();
 
   const healthTooltip = (() => {
-    if (!knowledgeHealth) return '지식 베이스: 로딩 중';
+    if (!knowledgeHealth) return 'Knowledge base: loading';
     const lastRun = knowledgeHealth.last_dreaming_run
       ? new Date(knowledgeHealth.last_dreaming_run).toLocaleDateString('ko-KR')
-      : '미실행';
-    return `지식 베이스: ${knowledgeHealth.total_cases}건 · 마지막 정제: ${lastRun}`;
+      : 'never';
+    return `Knowledge: ${knowledgeHealth.total_cases} cases · last refined: ${lastRun}`;
   })();
 
-  const statusColor =
-    wsStatus === 'connected'
-      ? 'var(--color-success)'
-      : wsStatus === 'connecting'
-        ? 'var(--color-warning)'
-        : 'var(--color-error)';
+  const wsBadgeStyle = (() => {
+    if (wsStatus === 'connected')
+      return { bg: 'var(--color-success-soft)', text: 'var(--color-success-text)', dot: 'var(--color-success)' };
+    if (wsStatus === 'connecting')
+      return { bg: 'var(--color-warning-soft)', text: 'var(--color-warning-text)', dot: 'var(--color-warning)' };
+    return { bg: 'var(--color-error-soft)', text: 'var(--color-error-text)', dot: 'var(--color-error)' };
+  })();
+
+  const handleTabClick = (tab: ActiveTab) => {
+    setActiveTab(tab);
+    if (tab === 'settings') {
+      navigate('/settings');
+    }
+  };
 
   return (
     <header style={styles.header}>
+      {/* Left: monogram + title */}
       <div style={styles.left}>
-        <span style={styles.logo}>Engram</span>
-        <span style={styles.subtitle}>Multi-Agent Support System</span>
+        <div style={styles.monogram}>EG</div>
+        <div style={styles.titleBlock}>
+          <span style={styles.titlePrimary}>ENGRAM</span>
+          <span style={styles.titleSub}>FIELD AI · 3 AGENTS</span>
+        </div>
       </div>
-      <div style={styles.right}>
-        <span
-          style={{ ...styles.statusDot, backgroundColor: statusColor }}
-          title={`WebSocket: ${wsStatus}`}
-        />
-        <span style={styles.statusText}>{wsStatus}</span>
-        {syncStatus && syncStatus !== 'disabled' && (
-          <span
+
+      {/* Center: tab switcher */}
+      <div style={styles.tabPill}>
+        {(['chat', 'knowledge', 'settings'] as ActiveTab[]).map((tab) => (
+          <button
+            key={tab}
             style={{
-              ...styles.syncBadge,
-              background:
-                syncStatus === 'synced'
-                  ? 'rgba(76,175,80,0.2)'
-                  : syncStatus === 'pending'
-                    ? 'rgba(255,152,0,0.2)'
-                    : 'rgba(244,67,54,0.2)',
-              color:
-                syncStatus === 'synced'
-                  ? '#4CAF50'
-                  : syncStatus === 'pending'
-                    ? '#FF9800'
-                    : '#F44336',
+              ...styles.tabBtn,
+              ...(activeTab === tab ? styles.tabBtnActive : {}),
             }}
-            title={
-              syncStatus === 'synced'
-                ? 'Sync: up to date'
-                : syncStatus === 'pending'
-                  ? `Sync: ${syncPending || 0} pending`
-                  : 'Sync: server offline'
-            }
+            onClick={() => handleTabClick(tab)}
           >
-            {syncStatus === 'synced' ? '↑↓' : syncStatus === 'pending' ? `↑${syncPending || ''}` : '⊘'}
-          </span>
-        )}
+            {tab.charAt(0).toUpperCase() + tab.slice(1)}
+          </button>
+        ))}
+      </div>
+
+      {/* Right: WS badge + icon buttons */}
+      <div style={styles.right}>
+        {/* Knowledge health indicator */}
         <span style={styles.healthIndicator} title={healthTooltip}>
           <span
             style={{
-              width: '8px',
-              height: '8px',
+              width: '6px',
+              height: '6px',
               borderRadius: '50%',
               backgroundColor: healthDotColor,
               display: 'inline-block',
               flexShrink: 0,
             }}
           />
-          <span style={styles.healthLabel}>지식</span>
+          <span style={styles.healthLabel}>知</span>
         </span>
-        <Link
-          to="/settings"
+
+        {/* WS connection badge */}
+        <span
           style={{
-            ...styles.gearLink,
-            background: gearHovered ? 'rgba(255,255,255,0.15)' : 'transparent',
-            color: gearHovered ? 'rgba(255,255,255,1)' : 'rgba(255,255,255,0.9)',
+            ...styles.wsBadge,
+            background: wsBadgeStyle.bg,
+            color: wsBadgeStyle.text,
           }}
-          title="Settings (Ctrl+,)"
-          onMouseEnter={() => setGearHovered(true)}
-          onMouseLeave={() => setGearHovered(false)}
+          title={`WebSocket: ${wsStatus}`}
         >
-          <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
-            <path
-              d="M10 12.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5z"
-              stroke="currentColor"
-              strokeWidth="1.5"
-            />
-            <path
-              d="M16.17 12.5a1.39 1.39 0 00.28 1.53l.05.05a1.69 1.69 0 01-1.19 2.88 1.69 1.69 0 01-1.19-.49l-.05-.05a1.39 1.39 0 00-1.53-.28 1.39 1.39 0 00-.84 1.27v.14a1.69 1.69 0 11-3.38 0v-.07a1.39 1.39 0 00-.91-1.27 1.39 1.39 0 00-1.53.28l-.05.05a1.69 1.69 0 11-2.39-2.39l.05-.05a1.39 1.39 0 00.28-1.53 1.39 1.39 0 00-1.27-.84h-.14a1.69 1.69 0 110-3.38h.07a1.39 1.39 0 001.27-.91 1.39 1.39 0 00-.28-1.53l-.05-.05a1.69 1.69 0 112.39-2.39l.05.05a1.39 1.39 0 001.53.28h.07a1.39 1.39 0 00.84-1.27v-.14a1.69 1.69 0 113.38 0v.07a1.39 1.39 0 00.84 1.27 1.39 1.39 0 001.53-.28l.05-.05a1.69 1.69 0 112.39 2.39l-.05.05a1.39 1.39 0 00-.28 1.53v.07a1.39 1.39 0 001.27.84h.14a1.69 1.69 0 010 3.38h-.07a1.39 1.39 0 00-1.27.84z"
-              stroke="currentColor"
-              strokeWidth="1.5"
-            />
+          <span
+            style={{
+              width: '6px',
+              height: '6px',
+              borderRadius: '50%',
+              backgroundColor: wsBadgeStyle.dot,
+              display: 'inline-block',
+              flexShrink: 0,
+            }}
+          />
+          {wsStatus}
+        </span>
+
+        {/* Moon / theme toggle */}
+        <button
+          style={styles.iconBtn}
+          onClick={onThemeToggle}
+          title="Toggle theme"
+          aria-label="Toggle dark mode"
+        >
+          <Icon d={MOON_PATH} size={16} />
+        </button>
+
+        {/* Settings icon */}
+        <Link to="/settings" style={styles.iconBtnLink} title="Settings (Ctrl+,)" aria-label="Settings">
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.75"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <circle cx="12" cy="12" r="3" />
+            <path d={SETTINGS_PATHS[0]} />
           </svg>
         </Link>
       </div>
@@ -146,61 +196,85 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: '0 20px',
-    background: 'var(--brand-primary)',
-    color: 'var(--text-on-dark)',
+    padding: '0 16px',
+    background: 'var(--surface-panel)',
     flexShrink: 0,
-    borderBottom: '1px solid rgba(255,255,255,0.08)',
+    borderBottom: '1px solid var(--border-hairline)',
   },
   left: {
     display: 'flex',
     alignItems: 'center',
-    gap: '12px',
+    gap: '10px',
+    flex: '0 0 auto',
   },
-  logo: {
+  monogram: {
+    width: '28px',
+    height: '28px',
+    borderRadius: 'var(--radius-sm)',
+    background: 'var(--brand-primary)',
+    color: '#FFFFFF',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: '11px',
     fontWeight: 700,
-    fontSize: '18px',
-    letterSpacing: '2px',
+    fontFamily: 'var(--font-mono)',
+    letterSpacing: '0.5px',
+    flexShrink: 0,
   },
-  title: {
-    fontWeight: 600,
-    fontSize: '16px',
+  titleBlock: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '1px',
   },
-  subtitle: {
+  titlePrimary: {
+    fontSize: '13px',
+    fontWeight: 700,
+    color: 'var(--text-primary)',
+    letterSpacing: '1.5px',
+    lineHeight: 1,
+    fontFamily: 'var(--font-sans)',
+  },
+  titleSub: {
+    fontSize: '10px',
+    color: 'var(--text-muted)',
+    letterSpacing: '1px',
+    lineHeight: 1,
+    fontFamily: 'var(--font-mono)',
+  },
+  tabPill: {
+    display: 'flex',
+    alignItems: 'center',
+    background: 'var(--surface-sunken)',
+    borderRadius: 'var(--radius-pill)',
+    padding: '3px',
+    gap: '2px',
+    border: '1px solid var(--border-hairline)',
+  },
+  tabBtn: {
+    padding: '4px 14px',
+    borderRadius: 'var(--radius-pill)',
+    border: 'none',
+    background: 'transparent',
+    color: 'var(--text-muted)',
     fontSize: '12px',
-    opacity: 0.7,
+    fontWeight: 500,
+    fontFamily: 'var(--font-sans)',
+    cursor: 'pointer',
+    transition: 'background 0.15s, color 0.15s',
+    whiteSpace: 'nowrap' as const,
+  },
+  tabBtnActive: {
+    background: 'var(--surface-panel)',
+    color: 'var(--text-primary)',
+    fontWeight: 600,
+    boxShadow: 'var(--shadow-xs)',
   },
   right: {
     display: 'flex',
     alignItems: 'center',
-    gap: '12px',
-  },
-  statusDot: {
-    width: '8px',
-    height: '8px',
-    borderRadius: '50%',
-  },
-  statusText: {
-    fontSize: '12px',
-    opacity: 0.8,
-    textTransform: 'capitalize' as const,
-  },
-  syncBadge: {
-    fontSize: '11px',
-    fontWeight: 600,
-    padding: '2px 8px',
-    borderRadius: '10px',
-    letterSpacing: '0.5px',
-  },
-  gearLink: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '32px',
-    height: '32px',
-    borderRadius: 'var(--radius-sm)',
-    textDecoration: 'none',
-    transition: 'background 0.15s, color 0.15s',
+    gap: '8px',
+    flex: '0 0 auto',
   },
   healthIndicator: {
     display: 'flex',
@@ -209,7 +283,47 @@ const styles: Record<string, React.CSSProperties> = {
     cursor: 'default',
   },
   healthLabel: {
+    fontSize: '10px',
+    color: 'var(--text-faint)',
+  },
+  wsBadge: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '5px',
+    padding: '3px 8px',
+    borderRadius: 'var(--radius-pill)',
     fontSize: '11px',
-    opacity: 0.75,
+    fontWeight: 500,
+    textTransform: 'capitalize' as const,
+    fontFamily: 'var(--font-mono)',
+    letterSpacing: '0.2px',
+  },
+  iconBtn: {
+    width: '30px',
+    height: '30px',
+    borderRadius: 'var(--radius-sm)',
+    border: '1px solid var(--border-hairline)',
+    background: 'transparent',
+    color: 'var(--text-secondary)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer',
+    flexShrink: 0,
+    transition: 'background 0.15s, color 0.15s',
+  },
+  iconBtnLink: {
+    width: '30px',
+    height: '30px',
+    borderRadius: 'var(--radius-sm)',
+    border: '1px solid var(--border-hairline)',
+    background: 'transparent',
+    color: 'var(--text-secondary)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+    textDecoration: 'none',
+    transition: 'background 0.15s, color 0.15s',
   },
 };

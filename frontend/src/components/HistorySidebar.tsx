@@ -34,6 +34,11 @@ function groupByDate(sessions: Session[]) {
   return groups.filter((g) => g.items.length > 0);
 }
 
+function formatTimestamp(dateStr: string): string {
+  const d = new Date(dateStr);
+  return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+}
+
 export function HistorySidebar({
   sessions,
   currentSessionId,
@@ -48,7 +53,6 @@ export function HistorySidebar({
   const [renameText, setRenameText] = useState('');
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
-  const [newChatHovered, setNewChatHovered] = useState(false);
 
   const filtered = useMemo(() => {
     if (!search.trim()) return sessions;
@@ -92,21 +96,14 @@ export function HistorySidebar({
 
   return (
     <div style={styles.sidebar}>
-      {/* New Chat button */}
-      <button
-        style={{
-          ...styles.newChatBtn,
-          ...(newChatHovered ? styles.newChatBtnHover : {}),
-        }}
-        onClick={onNewChat}
-        onMouseEnter={() => setNewChatHovered(true)}
-        onMouseLeave={() => setNewChatHovered(false)}
-      >
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ marginRight: 6 }}>
-          <path d="M7 1V13M1 7H13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-        </svg>
-        New Chat
-      </button>
+      {/* Header row */}
+      <div style={styles.headerRow}>
+        <span style={styles.eyebrow}>HISTORY</span>
+        <button style={styles.newBtn} onClick={onNewChat} title="New chat">
+          <PlusIcon />
+          <span>New</span>
+        </button>
+      </div>
 
       {/* Search */}
       <input
@@ -121,9 +118,7 @@ export function HistorySidebar({
       <div style={styles.list}>
         {groups.length === 0 && (
           <p style={styles.emptyText}>
-            {sessions.length === 0
-              ? 'No conversations yet. Start chatting!'
-              : 'No results found.'}
+            {sessions.length === 0 ? 'No conversations yet. Start chatting!' : 'No results found.'}
           </p>
         )}
 
@@ -133,9 +128,10 @@ export function HistorySidebar({
             {group.items.map((session) => {
               const isHovered = hoveredId === session.session_id;
               const isActive = session.session_id === currentSessionId;
+              const ts = formatTimestamp(session.updated_at || session.created_at);
 
               return (
-                <div
+                <button
                   key={session.session_id}
                   style={{
                     ...styles.item,
@@ -144,12 +140,7 @@ export function HistorySidebar({
                   }}
                   onClick={() => onSelect(session.session_id)}
                   onMouseEnter={() => setHoveredId(session.session_id)}
-                  onMouseLeave={() => {
-                    setHoveredId(null);
-                    if (menuOpen === session.session_id) {
-                      // keep menu open if user moved to it
-                    }
-                  }}
+                  onMouseLeave={() => setHoveredId(null)}
                   onContextMenu={(e) => {
                     e.preventDefault();
                     setMenuOpen(menuOpen === session.session_id ? null : session.session_id);
@@ -169,16 +160,31 @@ export function HistorySidebar({
                       onClick={(e) => e.stopPropagation()}
                     />
                   ) : (
-                    <div style={styles.itemContent}>
-                      <span style={styles.itemTitle}>{session.title || 'Untitled'}</span>
-                      <span style={styles.itemMeta}>
-                        {session.message_count} msg{session.message_count !== 1 ? 's' : ''}
-                        {session.silo_account ? ` · ${session.silo_account}` : ''}
-                      </span>
+                    <div style={styles.itemInner}>
+                      {/* First line: dot + title + timestamp */}
+                      <div style={styles.itemFirstLine}>
+                        <span
+                          style={{
+                            ...styles.activeDot,
+                            backgroundColor: isActive
+                              ? 'var(--brand-primary)'
+                              : 'var(--border-medium)',
+                          }}
+                          className={isActive ? 'pulse-dot' : undefined}
+                        />
+                        <span style={styles.itemTitle}>{session.title || 'Untitled'}</span>
+                        <span style={styles.itemTimestamp}>{ts}</span>
+                      </div>
+                      {/* Second line: preview */}
+                      <div style={styles.itemPreview}>
+                        {session.silo_account
+                          ? `${session.silo_account} · ${session.silo_tool}`
+                          : `${session.message_count} msg${session.message_count !== 1 ? 's' : ''}`}
+                      </div>
                     </div>
                   )}
 
-                  {/* Menu trigger — visible only on hover */}
+                  {/* Menu trigger */}
                   <button
                     style={{
                       ...styles.menuBtn,
@@ -241,7 +247,7 @@ export function HistorySidebar({
                       )}
                     </div>
                   )}
-                </div>
+                </button>
               );
             })}
           </div>
@@ -251,45 +257,71 @@ export function HistorySidebar({
   );
 }
 
+function PlusIcon() {
+  return (
+    <svg
+      width="11"
+      height="11"
+      viewBox="0 0 14 14"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+    >
+      <path d="M7 1V13M1 7H13" />
+    </svg>
+  );
+}
+
 const styles: Record<string, React.CSSProperties> = {
   sidebar: {
-    padding: '12px',
+    padding: '10px 10px 12px',
     display: 'flex',
     flexDirection: 'column',
     height: '100%',
     gap: '8px',
+    boxSizing: 'border-box',
   },
-  newChatBtn: {
+  headerRow: {
     display: 'flex',
     alignItems: 'center',
-    justifyContent: 'center',
-    padding: '8px 12px',
-    borderRadius: 'var(--radius-md)',
-    border: '1px solid var(--border-medium)',
-    background: 'var(--bg-primary)',
-    color: 'var(--text-primary)',
-    fontSize: '13px',
+    justifyContent: 'space-between',
+    paddingBottom: '2px',
+  },
+  eyebrow: {
+    fontSize: '10px',
+    fontWeight: 700,
+    letterSpacing: '1.2px',
+    color: 'var(--text-faint)',
+    fontFamily: 'var(--font-mono)',
+  },
+  newBtn: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '4px',
+    padding: '3px 9px',
+    borderRadius: 'var(--radius-pill)',
+    border: '1px solid var(--border-hairline)',
+    background: 'transparent',
+    color: 'var(--brand-primary)',
+    fontSize: '11px',
     fontWeight: 600,
     fontFamily: 'var(--font-family)',
     cursor: 'pointer',
-    transition: 'background 0.15s, border-color 0.15s, color 0.15s',
-    flexShrink: 0,
-  },
-  newChatBtnHover: {
-    background: 'var(--brand-primary)',
-    color: 'white',
-    borderColor: 'var(--brand-primary)',
+    transition: 'background 0.15s',
   },
   searchInput: {
     padding: '6px 10px',
     borderRadius: 'var(--radius-sm)',
-    border: '1px solid var(--border-light)',
-    background: 'var(--bg-primary)',
+    border: '1px solid var(--border-hairline)',
+    background: 'var(--surface-sunken)',
     fontSize: '12px',
     fontFamily: 'var(--font-family)',
     color: 'var(--text-primary)',
     outline: 'none',
     flexShrink: 0,
+    width: '100%',
+    boxSizing: 'border-box',
   },
   list: {
     flex: 1,
@@ -302,36 +334,59 @@ const styles: Record<string, React.CSSProperties> = {
     color: 'var(--text-muted)',
     lineHeight: '1.6',
     padding: '8px 4px',
+    margin: 0,
   },
   groupLabel: {
-    fontSize: '11px',
+    fontSize: '10px',
     fontWeight: 600,
-    textTransform: 'uppercase',
-    letterSpacing: '0.5px',
-    color: 'var(--text-muted)',
-    padding: '8px 4px 4px',
+    textTransform: 'uppercase' as const,
+    letterSpacing: '0.8px',
+    color: 'var(--text-faint)',
+    padding: '6px 10px',
+    fontFamily: 'var(--font-mono)',
   },
   item: {
     position: 'relative',
-    padding: '8px 10px',
+    width: '100%',
+    padding: '7px 10px',
     borderRadius: 'var(--radius-md)',
+    border: '1px solid transparent',
     cursor: 'pointer',
-    transition: 'background 0.1s',
+    transition: 'background 0.1s, border-color 0.1s',
     display: 'flex',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: '4px',
+    background: 'transparent',
+    textAlign: 'left' as const,
+    fontFamily: 'var(--font-family)',
+    boxSizing: 'border-box',
   },
   itemActive: {
-    background: 'var(--bg-hover)',
+    background: 'var(--surface-panel)',
+    border: '1px solid var(--border-hairline)',
+    boxShadow: 'var(--shadow-xs)',
   },
   itemHover: {
-    background: 'var(--bg-secondary)',
+    background: 'var(--surface-hover)',
   },
-  itemContent: {
+  itemInner: {
     flex: 1,
     minWidth: 0,
     display: 'flex',
     flexDirection: 'column',
+    gap: '2px',
+  },
+  itemFirstLine: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+  },
+  activeDot: {
+    width: '6px',
+    height: '6px',
+    borderRadius: '50%',
+    flexShrink: 0,
+    transition: 'background-color 0.2s',
   },
   itemTitle: {
     fontSize: '12px',
@@ -339,11 +394,24 @@ const styles: Record<string, React.CSSProperties> = {
     color: 'var(--text-primary)',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
+    whiteSpace: 'nowrap' as const,
+    flex: 1,
+    minWidth: 0,
   },
-  itemMeta: {
+  itemTimestamp: {
+    fontSize: '10px',
+    color: 'var(--text-faint)',
+    fontFamily: 'var(--font-mono)',
+    flexShrink: 0,
+    whiteSpace: 'nowrap' as const,
+  },
+  itemPreview: {
     fontSize: '11px',
     color: 'var(--text-muted)',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap' as const,
+    paddingLeft: '12px',
   },
   renameInput: {
     flex: 1,
@@ -353,7 +421,7 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: 'var(--radius-sm)',
     border: '1px solid var(--brand-primary)',
     outline: 'none',
-    background: 'var(--bg-primary)',
+    background: 'var(--surface-panel)',
     color: 'var(--text-primary)',
   },
   menuBtn: {
@@ -373,10 +441,10 @@ const styles: Record<string, React.CSSProperties> = {
     position: 'absolute',
     right: '4px',
     top: '100%',
-    background: 'var(--bg-primary)',
-    border: '1px solid var(--border-light)',
+    background: 'var(--surface-panel)',
+    border: '1px solid var(--border-hairline)',
     borderRadius: 'var(--radius-md)',
-    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+    boxShadow: 'var(--shadow-md)',
     zIndex: 10,
     overflow: 'hidden',
     minWidth: '120px',
@@ -391,7 +459,7 @@ const styles: Record<string, React.CSSProperties> = {
     background: 'none',
     border: 'none',
     cursor: 'pointer',
-    textAlign: 'left',
+    textAlign: 'left' as const,
     transition: 'background 0.1s',
   },
   confirmRow: {
@@ -419,7 +487,7 @@ const styles: Record<string, React.CSSProperties> = {
     color: 'white',
   },
   confirmBtnCancel: {
-    background: 'var(--bg-secondary)',
+    background: 'var(--surface-sunken)',
     color: 'var(--text-secondary)',
   },
 };
