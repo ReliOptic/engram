@@ -5,6 +5,7 @@ interface UploadedFile {
   filename: string;
   saved_as: string;
   size_bytes: number;
+  extracted_text?: string;
 }
 
 interface ChatInputProps {
@@ -122,7 +123,7 @@ export function ChatInput({ onSend, disabled, isProcessing, onStop }: ChatInputP
   };
 
   const handleSubmit = () => {
-    if (!text.trim() || !silo.account) return;
+    if ((!text.trim() && attachments.length === 0) || !silo.account) return;
     onSend(text.trim(), silo, attachments.length > 0 ? attachments : undefined);
     setText('');
     setAttachments([]);
@@ -139,7 +140,7 @@ export function ChatInput({ onSend, disabled, isProcessing, onStop }: ChatInputP
     }
   };
 
-  const canSend = !!text.trim() && !disabled;
+  const canSend = (!!(text.trim()) || attachments.length > 0) && !disabled;
   const siloLabel =
     silo.account && silo.tool && silo.component
       ? `${silo.account} / ${silo.tool} / ${silo.component}`
@@ -195,7 +196,13 @@ export function ChatInput({ onSend, disabled, isProcessing, onStop }: ChatInputP
         <div style={styles.attachRow}>
           {attachments.map((a, i) => (
             <span key={i} style={styles.attachChip}>
+              <span style={styles.attachLabel}>[img]</span>
               {a.filename} ({(a.size_bytes / 1024).toFixed(1)}KB)
+              {a.extracted_text && (
+                <span style={styles.attachOcrPreview}>
+                  &ldquo;{a.extracted_text.slice(0, 80)}{a.extracted_text.length > 80 ? '…' : ''}&rdquo;
+                </span>
+              )}
               <button style={styles.attachRemove} onClick={() => removeAttachment(i)}>
                 &times;
               </button>
@@ -325,6 +332,20 @@ const styles: Record<string, React.CSSProperties> = {
     background: 'var(--bg-secondary)',
     fontSize: '11px',
     color: 'var(--text-secondary)',
+  },
+  attachLabel: {
+    fontSize: '10px',
+    color: 'var(--text-muted)',
+    fontWeight: 600,
+    marginRight: '4px',
+  },
+  attachOcrPreview: {
+    display: 'block',
+    fontSize: '10px',
+    color: 'var(--text-muted)',
+    fontStyle: 'italic',
+    marginTop: '2px',
+    lineHeight: '1.3',
   },
   attachRemove: {
     background: 'none',

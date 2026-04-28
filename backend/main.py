@@ -9,6 +9,7 @@ Entry point for the backend server. Provides:
 - /api/settings/* endpoints for admin configuration
 """
 
+import asyncio
 import json
 import uuid
 from datetime import UTC, datetime
@@ -24,6 +25,64 @@ from backend.config import VERSION, load_dropdowns_config, load_models_config
 import backend.config as _cfg
 
 logger = logging.getLogger(__name__)
+
+_IMAGE_EXTENSIONS = frozenset({".jpg", ".jpeg", ".png", ".gif", ".webp"})
+_IMAGE_MIME = {
+    ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
+    ".png": "image/png", ".gif": "image/gif", ".webp": "image/webp",
+}
+
+
+async def _ocr_image(content: bytes, filename: str) -> str:
+    """Extract visible text from an image via OpenRouter vision API.
+
+    Returns empty string when API key is absent, file is not an image,
+    or the API call fails — callers must treat this as optional enrichment.
+    """
+    import base64
+    import httpx
+
+    api_key = getattr(_cfg, "OPENROUTER_API_KEY", "")
+    if not api_key:
+        return ""
+    ext = Path(filename).suffix.lower()
+    if ext not in _IMAGE_EXTENSIONS:
+        return ""
+
+    mime = _IMAGE_MIME.get(ext, "image/jpeg")
+    b64 = base64.b64encode(content).decode()
+
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            resp = await client.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                headers={"Authorization": f"Bearer {api_key}"},
+                json={
+                    "model": "google/gemini-2.0-flash-lite-001",
+                    "messages": [{
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "text",
+                                "text": (
+                                    "Extract all visible text from this image. "
+                                    "Output only the extracted text, no commentary."
+                                ),
+                            },
+                            {
+                                "type": "image_url",
+                                "image_url": {"url": f"data:{mime};base64,{b64}"},
+                            },
+                        ],
+                    }],
+                    "max_tokens": 1000,
+                },
+            )
+            if resp.status_code == 200:
+                return resp.json()["choices"][0]["message"]["content"].strip()
+    except Exception as exc:
+        logger.warning("OCR failed for %s: %s", filename, exc)
+    return ""
 
 
 async def _safe_send(websocket: WebSocket, data: dict) -> bool:
@@ -62,12 +121,25 @@ class TestConnectionRequest(BaseModel):
 
 def create_app() -> FastAPI:
     """Factory function for creating the FastAPI app."""
+    from contextlib import asynccontextmanager
     from backend.knowledge.database import EngramDB
+
+    @asynccontextmanager
+    async def _lifespan(app: FastAPI):
+        from backend.knowledge.auto_ingester import AutoIngester
+        from backend.knowledge.vectordb import VectorDB
+        watch_dir = _cfg.DATA_DIR / "weekly_reports"
+        watch_dir.mkdir(parents=True, exist_ok=True)
+        vdb = VectorDB(persist_dir=str(_cfg.DATA_DIR / "chroma_db"))
+        ingester = AutoIngester(watch_dir, vdb)
+        asyncio.create_task(ingester.run_watcher())
+        yield
 
     app = FastAPI(
         title="Engram",
         description="Multi-Agent Support System",
         version=VERSION,
+        lifespan=_lifespan,
     )
 
     # Load config eagerly so it's available immediately (works with test clients too)
@@ -147,6 +219,12 @@ def create_app() -> FastAPI:
                     text = payload.get("text", str(raw))
                     silo = payload.get("silo", {})
                     session_id = payload.get("session_id", "")
+
+                    # Append OCR-extracted image text to query context
+                    for att in payload.get("attachments", []):
+                        extracted = (att.get("extracted_text") or "").strip()
+                        if extracted:
+                            text = f"{text}\n\n[Attached image text: {extracted}]"
 
                     # Auto-create session on first message if no session_id
                     db = app.state.db
@@ -431,22 +509,25 @@ def create_app() -> FastAPI:
     async def upload_file(file: UploadFile = File(...)):
         """Upload a file for agent reference.
 
-        Saves to data/uploads/ and returns the file path.
+        Saves to data/uploads/. For image files, extracts visible text via
+        OpenRouter vision API and returns it as extracted_text.
         """
-        upload_dir = Path("data/uploads")
+        upload_dir = _cfg.DATA_DIR / "uploads"
         upload_dir.mkdir(parents=True, exist_ok=True)
 
-        # Sanitize filename
         safe_name = f"{datetime.now(tz=UTC).strftime('%Y%m%d%H%M%S')}_{file.filename}"
         dest = upload_dir / safe_name
 
         content = await file.read()
         dest.write_bytes(content)
 
+        extracted_text = await _ocr_image(content, file.filename or "")
+
         return {
             "filename": file.filename,
             "saved_as": str(dest),
             "size_bytes": len(content),
+            "extracted_text": extracted_text or None,
         }
 
     # --- Knowledge API ---
@@ -515,6 +596,19 @@ def create_app() -> FastAPI:
             return {"results": results, "count": len(results)}
         except Exception as e:
             return {"results": [], "count": 0, "error": str(e)}
+
+    @app.post("/api/knowledge/ingest")
+    async def trigger_ingest():
+        """Manually scan data/weekly_reports/ and ingest any new xlsx files."""
+        from backend.knowledge.auto_ingester import AutoIngester
+        from backend.knowledge.vectordb import VectorDB
+
+        watch_dir = _cfg.DATA_DIR / "weekly_reports"
+        watch_dir.mkdir(parents=True, exist_ok=True)
+        vdb = VectorDB(persist_dir=str(_cfg.DATA_DIR / "chroma_db"))
+        ingester = AutoIngester(watch_dir, vdb)
+        ingested = await ingester.scan_and_ingest()
+        return {"ingested": ingested, "count": len(ingested)}
 
     # Serve frontend dist/ if it exists (production mode — no Node.js needed)
     dist_dir = Path(__file__).parent.parent / "frontend" / "dist"

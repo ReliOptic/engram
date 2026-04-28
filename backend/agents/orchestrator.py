@@ -174,7 +174,7 @@ class Orchestrator:
             raise ValueError(f"Agent '{agent_name}' not registered")
         return await agent.respond(user_query, conversation)
 
-    async def run(self, user_query: str) -> OrchestratorResult:
+    async def run(self, user_query: str, timeout_secs: float = 45.0) -> OrchestratorResult:
         """Run the collaborative discussion loop.
 
         Flow:
@@ -183,15 +183,24 @@ class Orchestrator:
         3. If rubber-stamp → agent is asked again (retry once)
         4. @mention routing prioritizes mentioned agent next
         5. Terminates when: all agents PASS (after min 1 contribution each),
-           max rounds reached, or user input requested
+           max rounds reached, user input requested, or wall-clock timeout exceeded
         """
         conversation: list[AgentResponse] = []
         contributions: dict[str, int] = {name: 0 for name in AGENT_ORDER}
         passes: dict[str, bool] = {name: False for name in AGENT_ORDER}
         round_count = 0
         pending_mentions: list[str] = []
+        deadline = asyncio.get_running_loop().time() + timeout_secs
 
         while round_count < MAX_ROUNDS:
+            # Check wall-clock deadline before starting each round
+            if asyncio.get_running_loop().time() > deadline:
+                return OrchestratorResult(
+                    conversation=conversation,
+                    terminated_reason="timeout",
+                    round_count=round_count,
+                )
+
             round_count += 1
 
             # Determine agent order for this round
@@ -205,22 +214,38 @@ class Orchestrator:
 
             all_passed_this_round = True
 
-            # Round 1 with standard order: all agents receive identical empty context,
-            # so run them in parallel to cut first-round latency by ~66%.
-            # Trade-off: if any agent returns ASK_STAKEHOLDER in round 1, the other
-            # agents' responses are already fetched and sent to the WebSocket client.
-            # This is acceptable because round-1 ASK_STAKEHOLDER is rare and the
-            # user still receives all initial analyses.
-            if round_count == 1 and turn_order == list(AGENT_ORDER):
-                prefetched: dict[str, AgentResponse] = dict(
-                    zip(
-                        AGENT_ORDER,
-                        await asyncio.gather(*(
-                            self._get_agent_response(name, user_query, [])
-                            for name in AGENT_ORDER
-                        )),
+            # Standard turn order: all agents receive the same conversation snapshot,
+            # so run them in parallel to cut per-round latency by ~66%.
+            # Trade-off: if any agent returns ASK_STAKEHOLDER, the other agents'
+            # responses are already fetched. This is acceptable because the user
+            # still receives all analyses, and ASK_STAKEHOLDER in early rounds is rare.
+            if turn_order == list(AGENT_ORDER):
+                remaining = deadline - asyncio.get_running_loop().time()
+                if remaining <= 0:
+                    return OrchestratorResult(
+                        conversation=conversation,
+                        terminated_reason="timeout",
+                        round_count=round_count,
                     )
-                )
+                try:
+                    prefetched: dict[str, AgentResponse] = dict(
+                        zip(
+                            turn_order,
+                            await asyncio.wait_for(
+                                asyncio.gather(*(
+                                    self._get_agent_response(name, user_query, list(conversation))
+                                    for name in turn_order
+                                )),
+                                timeout=remaining,
+                            ),
+                        )
+                    )
+                except asyncio.TimeoutError:
+                    return OrchestratorResult(
+                        conversation=conversation,
+                        terminated_reason="timeout",
+                        round_count=round_count,
+                    )
             else:
                 prefetched = {}
 
@@ -231,9 +256,24 @@ class Orchestrator:
                 if agent_name in prefetched:
                     response = prefetched.pop(agent_name)
                 else:
-                    response = await self._get_agent_response(
-                        agent_name, user_query, conversation
-                    )
+                    remaining = deadline - asyncio.get_running_loop().time()
+                    if remaining <= 0:
+                        return OrchestratorResult(
+                            conversation=conversation,
+                            terminated_reason="timeout",
+                            round_count=round_count,
+                        )
+                    try:
+                        response = await asyncio.wait_for(
+                            self._get_agent_response(agent_name, user_query, conversation),
+                            timeout=remaining,
+                        )
+                    except asyncio.TimeoutError:
+                        return OrchestratorResult(
+                            conversation=conversation,
+                            terminated_reason="timeout",
+                            round_count=round_count,
+                        )
 
                 # Check for user input request
                 if (
@@ -276,9 +316,26 @@ class Orchestrator:
                             "new contribution backed by evidence or reasoning."
                         ),
                     )
-                    response = await self._get_agent_response(
-                        agent_name, user_query, conversation + [rejection]
-                    )
+                    remaining = deadline - asyncio.get_running_loop().time()
+                    if remaining <= 0:
+                        return OrchestratorResult(
+                            conversation=conversation,
+                            terminated_reason="timeout",
+                            round_count=round_count,
+                        )
+                    try:
+                        response = await asyncio.wait_for(
+                            self._get_agent_response(
+                                agent_name, user_query, conversation + [rejection]
+                            ),
+                            timeout=remaining,
+                        )
+                    except asyncio.TimeoutError:
+                        return OrchestratorResult(
+                            conversation=conversation,
+                            terminated_reason="timeout",
+                            round_count=round_count,
+                        )
                     if response.contribution_type == "PASS":
                         if contributions[agent_name] > 0:
                             passes[agent_name] = True
