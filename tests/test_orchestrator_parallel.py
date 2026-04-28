@@ -51,22 +51,17 @@ async def test_all_rounds_run_agents_in_parallel(orchestrator):
 
     3 agents each delay 0.05s. Sequential would take ≥0.15s per round.
     Parallel should complete each round in ~0.05s.
-    We measure round 2 by tracking wall-clock time.
     """
     call_count = {"analyzer": 0, "finder": 0, "reviewer": 0}
-    round2_start: list[float] = []
-    round2_end: list[float] = []
+    round2_call_times: dict[str, float] = {}
 
     async def mock_respond(agent_name: str, user_query: str, conversation: list[AgentResponse]) -> AgentResponse:
         is_round2 = len(conversation) == 3  # After round 1 all 3 contributed
-        if is_round2 and not round2_start:
-            round2_start.append(asyncio.get_running_loop().time())
+        if is_round2:
+            round2_call_times[agent_name] = asyncio.get_running_loop().time()
 
         await asyncio.sleep(0.05)
         call_count[agent_name] += 1
-
-        if is_round2 and len(round2_end) == 0 and len(call_count) == 3:
-            round2_end.append(asyncio.get_running_loop().time())
 
         if call_count[agent_name] == 1:
             return _make_response(
@@ -91,7 +86,13 @@ async def test_all_rounds_run_agents_in_parallel(orchestrator):
         f"Expected parallel execution (~0.10s), but took {elapsed:.3f}s — "
         "suggests sequential execution"
     )
-    assert result.terminated_reason in ("all_pass", "max_rounds", "timeout")
+    assert result.terminated_reason == "all_pass"
+    assert set(round2_call_times) == set(AGENT_ORDER)
+    round2_spread = max(round2_call_times.values()) - min(round2_call_times.values())
+    assert round2_spread < 0.05, (
+        f"Round 2 agents should start nearly simultaneously "
+        f"(spread={round2_spread:.3f}s)"
+    )
 
 
 async def test_timeout_terminates_early(orchestrator):
@@ -149,10 +150,13 @@ async def test_timeout_preserves_partial_conversation(orchestrator):
 
 async def test_existing_round1_parallel_behavior_preserved(orchestrator):
     """Round 1 was already parallel — ensure it still is after the refactor."""
-    call_times: dict[str, float] = {}
+    first_call_times: dict[str, float] = {}
+    first_call_conversation_lengths: dict[str, int] = {}
 
     async def timed_respond(agent_name: str, user_query: str, conversation: list[AgentResponse]) -> AgentResponse:
-        call_times[agent_name] = asyncio.get_running_loop().time()
+        if agent_name not in first_call_times:
+            first_call_times[agent_name] = asyncio.get_running_loop().time()
+            first_call_conversation_lengths[agent_name] = len(conversation)
         await asyncio.sleep(0.05)
 
         if not conversation:  # Round 1
@@ -171,8 +175,11 @@ async def test_existing_round1_parallel_behavior_preserved(orchestrator):
 
     # All three agents should have been called; their start times should be
     # within ~0.02s of each other (parallel dispatch).
-    assert len(call_times) == 3, "All 3 agents must be called in round 1"
-    times = list(call_times.values())
+    assert len(first_call_times) == 3, "All 3 agents must be called in round 1"
+    assert first_call_conversation_lengths == {
+        agent: 0 for agent in AGENT_ORDER
+    }, "Round 1 prefetch should give every agent the same empty snapshot"
+    times = list(first_call_times.values())
     spread = max(times) - min(times)
     assert spread < 0.05, (
         f"Round 1 agents should start nearly simultaneously (spread={spread:.3f}s), "
