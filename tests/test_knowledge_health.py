@@ -101,14 +101,14 @@ async def test_health_dreaming_status_ok_when_log_exists(client):
     db._conn.execute("""
         CREATE TABLE dreaming_log (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            run_at TEXT NOT NULL,
+            ran_at TEXT NOT NULL,
             status TEXT NOT NULL DEFAULT 'ok',
             chunks_processed INTEGER NOT NULL DEFAULT 0,
             error_message TEXT DEFAULT NULL
         )
     """)
     db._conn.execute(
-        "INSERT INTO dreaming_log (run_at, status, chunks_processed) VALUES (?, ?, ?)",
+        "INSERT INTO dreaming_log (ran_at, status, chunks_processed) VALUES (?, ?, ?)",
         ("2026-04-28T00:00:00+00:00", "ok", 5),
     )
     db._conn.commit()
@@ -134,18 +134,18 @@ async def test_health_dreaming_status_failed_when_last_run_failed(client):
     db._conn.execute("""
         CREATE TABLE dreaming_log (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            run_at TEXT NOT NULL,
+            ran_at TEXT NOT NULL,
             status TEXT NOT NULL DEFAULT 'ok',
             chunks_processed INTEGER NOT NULL DEFAULT 0,
             error_message TEXT DEFAULT NULL
         )
     """)
     db._conn.execute(
-        "INSERT INTO dreaming_log (run_at, status, chunks_processed) VALUES (?, ?, ?)",
+        "INSERT INTO dreaming_log (ran_at, status, chunks_processed) VALUES (?, ?, ?)",
         ("2026-04-27T00:00:00+00:00", "ok", 3),
     )
     db._conn.execute(
-        "INSERT INTO dreaming_log (run_at, status, chunks_processed) VALUES (?, ?, ?)",
+        "INSERT INTO dreaming_log (ran_at, status, chunks_processed) VALUES (?, ?, ?)",
         ("2026-04-28T00:00:00+00:00", "failed", 0),
     )
     db._conn.commit()

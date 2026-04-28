@@ -728,7 +728,7 @@ def create_app() -> FastAPI:
         dreaming_status = "never_run"
         try:
             row = conn.execute(
-                "SELECT run_at, status FROM dreaming_log ORDER BY id DESC LIMIT 1"
+                "SELECT ran_at, status FROM dreaming_log ORDER BY id DESC LIMIT 1"
             ).fetchone()
             if row:
                 last_dreaming_run = row[0]
@@ -816,6 +816,122 @@ def create_app() -> FastAPI:
         ingester = AutoIngester(watch_dir, vdb)
         ingested = await ingester.scan_and_ingest()
         return {"ingested": ingested, "count": len(ingested)}
+
+    @app.post("/api/dreaming/trigger")
+    async def trigger_dreaming():
+        """Manually run the full dreaming pipeline (light + REM + deep sleep)."""
+        from backend.knowledge.dreaming import DreamingPipeline
+        from backend.knowledge.vectordb import VectorDB
+
+        vdb = VectorDB(persist_dir=str(_cfg.DATA_DIR / "chroma_db"))
+        pipeline = DreamingPipeline(vdb)
+        try:
+            report = await pipeline.run_full_cycle()
+            app.state.db.record_dreaming_run(status="ok")
+            return {
+                "ok": True,
+                "timestamp": report.timestamp,
+                "light_sleep": [
+                    {"collection": r.collection, "total_items": r.total_items, "duplicates_found": len(r.merge_candidates)}
+                    for r in report.light_sleep
+                ],
+                "rem_patterns": len(report.rem_patterns),
+                "graph_nodes": report.deep_graph_nodes,
+                "graph_edges": report.deep_graph_edges,
+            }
+        except Exception as e:
+            app.state.db.record_dreaming_run(status="failed", error_msg=str(e))
+            from fastapi.responses import JSONResponse
+            return JSONResponse(status_code=500, content={"ok": False, "error": str(e)})
+
+    @app.get("/api/dreaming/history")
+    async def get_dreaming_history():
+        """Return last dreaming run info."""
+        last = app.state.db.get_last_dreaming_run()
+        return last or {"ran_at": None, "status": "never_run", "error_msg": None}
+
+    @app.get("/api/costs/summary")
+    async def get_costs_summary():
+        """Return LLM cost breakdown by model."""
+        rows = await asyncio.to_thread(app.state.db.get_cost_summary_by_model)
+        enriched = [
+            {
+                **r,
+                "total_tokens": (r.get("total_prompt_tokens") or 0) + (r.get("total_completion_tokens") or 0),
+            }
+            for r in rows
+        ]
+        total = sum(r["total_cost_usd"] for r in enriched)
+        return {"by_model": enriched, "total_cost_usd": round(float(total), 6)}
+
+    @app.post("/api/sync/push")
+    async def sync_push():
+        """Manually push pending events to sync server."""
+        from backend.config import SYNC_SERVER_URL, SYNC_DEVICE_NAME
+        try:
+            from backend.sync.queue import SyncQueue
+            from backend.sync.client import SyncClient
+            queue = SyncQueue(app.state.db._conn)
+            client = SyncClient(SYNC_SERVER_URL, queue, SYNC_DEVICE_NAME)
+            pushed = await client.push_pending()
+            return {"ok": True, "pushed": pushed}
+        except Exception as e:
+            return {"ok": False, "error": str(e)}
+
+    @app.post("/api/sync/pull")
+    async def sync_pull():
+        """Pull updates from sync server."""
+        from backend.config import SYNC_SERVER_URL, SYNC_DEVICE_NAME
+        try:
+            from backend.sync.queue import SyncQueue
+            from backend.sync.client import SyncClient
+            queue = SyncQueue(app.state.db._conn)
+            client = SyncClient(SYNC_SERVER_URL, queue, SYNC_DEVICE_NAME)
+            updates = await client.pull_updates()
+            from backend.knowledge.vectordb import VectorDB
+            vdb = VectorDB(persist_dir=str(_cfg.DATA_DIR / "chroma_db"))
+            imported = 0
+            for collection in ["cases", "traces", "manuals"]:
+                for chunk in updates.get(collection, []):
+                    try:
+                        col_name = "case_records" if collection == "cases" else collection
+                        vdb.upsert(col_name, chunk)
+                        imported += 1
+                    except Exception:
+                        pass
+            return {"ok": True, "imported": imported}
+        except Exception as e:
+            return {"ok": False, "error": str(e)}
+
+    @app.get("/api/settings/vectordb/export")
+    async def export_vectordb():
+        """Export all VectorDB collections as JSON for backup/transfer."""
+        from backend.knowledge.vectordb import VectorDB, COLLECTIONS
+        from fastapi.responses import JSONResponse
+        import json as _json
+
+        persist_dir = str(_cfg.DATA_DIR / "chroma_db")
+        export_data: dict = {}
+        try:
+            vdb = VectorDB(persist_dir=persist_dir)
+            for name in COLLECTIONS:
+                try:
+                    col = vdb._get_collection(name)
+                    items = col.get(limit=10000, include=["documents", "metadatas", "embeddings"])
+                    export_data[name] = {
+                        "ids": items["ids"],
+                        "documents": items["documents"],
+                        "metadatas": items["metadatas"],
+                    }
+                except Exception:
+                    export_data[name] = {"ids": [], "documents": [], "metadatas": []}
+        except Exception as e:
+            return JSONResponse(status_code=500, content={"error": str(e)})
+
+        return JSONResponse(
+            content=export_data,
+            headers={"Content-Disposition": "attachment; filename=engram_vectordb_export.json"},
+        )
 
     # Serve frontend dist/ if it exists (production mode — no Node.js needed)
     dist_dir = Path(__file__).parent.parent / "frontend" / "dist"
