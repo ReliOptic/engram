@@ -33,6 +33,10 @@ from db_builder.enrichment import LLMEnricher
 from db_builder.filetype import detect_mime
 from db_builder.pipeline import EmbeddingPipeline
 from db_builder.store.chromadb_writer import ChromaDBWriter
+from db_builder.ui.theme import (
+    C_ANALYZER, C_ERROR, C_SUCCESS_TEXT, C_TEXT_MUTED,
+    LOG_QSS, S_PAUSE, S_RESUME, S_START, S_STOP,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -404,20 +408,6 @@ class BuildWorker(QThread):
             self.log.emit(f"Wiki index generation skipped: {e}")
 
 
-# ── Styles ──
-
-_BTN = (
-    "QPushButton{{background:{bg};color:white;font-weight:bold;"
-    "border-radius:4px;padding:6px 24px;font-size:13px}}"
-    "QPushButton:hover{{background:{hover}}}"
-    "QPushButton:disabled{{background:#bbb;color:#eee}}"
-)
-S_START = _BTN.format(bg="#4CAF50", hover="#388E3C")
-S_PAUSE = _BTN.format(bg="#FF9800", hover="#F57C00")
-S_RESUME = _BTN.format(bg="#2196F3", hover="#1976D2")
-S_STOP = _BTN.format(bg="#F44336", hover="#D32F2F")
-
-
 class BuildPanel(QWidget):
     """Unified build controls: Start / Pause / Resume / Stop."""
 
@@ -464,7 +454,7 @@ class BuildPanel(QWidget):
         self.chk_enrich.setChecked(False)
 
         self.lbl_pending = QLabel()
-        self.lbl_pending.setStyleSheet("color:#888;font-size:12px;")
+        self.lbl_pending.setStyleSheet(f"color:{C_TEXT_MUTED};font-size:12px;")
 
         bar.addWidget(self.btn_main)
         bar.addWidget(self.btn_stop)
@@ -481,7 +471,7 @@ class BuildPanel(QWidget):
         # ── Progress bars ──
         p1 = QHBoxLayout()
         self.lbl_phase = QLabel("Idle")
-        self.lbl_phase.setStyleSheet("font-size:12px;color:#666;min-width:120px;")
+        self.lbl_phase.setStyleSheet(f"font-size:12px;color:{C_TEXT_MUTED};min-width:120px;")
         self.prog_overall = QProgressBar()
         self.prog_overall.setMaximumHeight(22)
         p1.addWidget(self.lbl_phase)
@@ -490,7 +480,7 @@ class BuildPanel(QWidget):
 
         p2 = QHBoxLayout()
         self.lbl_embed = QLabel("Embedding:")
-        self.lbl_embed.setStyleSheet("font-size:12px;color:#666;min-width:120px;")
+        self.lbl_embed.setStyleSheet(f"font-size:12px;color:{C_TEXT_MUTED};min-width:120px;")
         self.prog_embed = QProgressBar()
         self.prog_embed.setMaximumHeight(22)
         self.lbl_embed.hide()
@@ -509,19 +499,12 @@ class BuildPanel(QWidget):
         self.table.setAlternatingRowColors(True)
         self.table.horizontalHeader().setStretchLastSection(True)
         self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
-        self.table.setStyleSheet(
-            "QTableWidget{gridline-color:#e0e0e0;font-size:12px}"
-            "QHeaderView::section{background:#f5f5f5;padding:6px;"
-            "border:1px solid #ddd;font-weight:bold}"
-        )
+        self.table.setStyleSheet("QTableWidget::item{padding:4px 6px;}")
         split.addWidget(self.table)
 
         self.log = QTextEdit()
         self.log.setReadOnly(True)
-        self.log.setStyleSheet(
-            "QTextEdit{background:#1e1e1e;color:#d4d4d4;"
-            "font-family:'Consolas','Courier New',monospace;font-size:11px}"
-        )
+        self.log.setStyleSheet(LOG_QSS)
         split.addWidget(self.log)
         split.setSizes([280, 280])
         root.addWidget(split)
@@ -581,7 +564,7 @@ class BuildPanel(QWidget):
             self.table.setItem(row, 0, QTableWidgetItem(f["file_path"]))
             self.table.setItem(row, 1, QTableWidgetItem(f["source_type"]))
             item = QTableWidgetItem("Waiting")
-            item.setForeground(QColor("#888"))
+            item.setForeground(QColor(C_TEXT_MUTED))
             self.table.setItem(row, 2, item)
             bar = QProgressBar()
             bar.setMaximum(100)
@@ -634,7 +617,7 @@ class BuildPanel(QWidget):
         it = self.table.item(row, 2)
         if it:
             it.setText("Processing")
-            it.setForeground(QColor("#2196F3"))
+            it.setForeground(QColor(C_ANALYZER))
 
     def _w_file_progress(self, fid: int, stage: str, pct: int):
         row = self._row_map.get(fid)
@@ -667,11 +650,11 @@ class BuildPanel(QWidget):
                 short_err = err[:60] + "..." if len(err) > 60 else err
                 it.setText(f"FAILED: {short_err}" if short_err else "FAILED")
                 it.setToolTip(f"Error: {err}" if err else "")
-                it.setForeground(QColor("#F44336"))
+                it.setForeground(QColor(C_ERROR))
         else:
             if it:
                 it.setText("Done")
-                it.setForeground(QColor("#4CAF50"))
+                it.setForeground(QColor(C_SUCCESS_TEXT))
             if isinstance(bar, QProgressBar):
                 bar.setValue(100)
 

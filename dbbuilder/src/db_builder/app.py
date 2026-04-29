@@ -19,6 +19,9 @@ def run_gui(config: DBBuilderConfig | None = None) -> int:
     app.setApplicationName("Engram DB Builder")
     app.setApplicationVersion("0.1.0")
 
+    from db_builder.ui.theme import GLOBAL_QSS
+    app.setStyleSheet(GLOBAL_QSS)
+
     db_path = str(config.db_path) if config else ""
     chromadb_dir = str(config.chromadb_dir) if config else ""
 

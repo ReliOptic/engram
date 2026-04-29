@@ -600,6 +600,72 @@ wheels = [
 ]
 
 [[package]]
+name = "engram-db-builder"
+version = "0.1.0"
+source = { editable = "." }
+dependencies = [
+    { name = "chromadb" },
+    { name = "httpx" },
+    { name = "langdetect" },
+    { name = "openpyxl" },
+    { name = "pandas" },
+    { name = "pdfplumber" },
+    { name = "pydantic" },
+    { name = "pymupdf" },
+    { name = "pymupdf4llm" },
+    { name = "pyside6" },
+    { name = "pytesseract" },
+    { name = "python-docx" },
+    { name = "python-dotenv" },
+    { name = "python-magic" },
+    { name = "tiktoken" },
+]
+
+[package.optional-dependencies]
+dev = [
+    { name = "pyinstaller" },
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+]
+ocr-paddle = [
+    { name = "paddleocr" },
+    { name = "paddlepaddle" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pytest" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "chromadb", specifier = ">=0.5.0" },
+    { name = "httpx", specifier = ">=0.27.0" },
+    { name = "langdetect", specifier = ">=1.0.9" },
+    { name = "openpyxl", specifier = ">=3.1.0" },
+    { name = "paddleocr", marker = "extra == 'ocr-paddle'", specifier = ">=2.7.0" },
+    { name = "paddlepaddle", marker = "extra == 'ocr-paddle'", specifier = ">=2.6.0" },
+    { name = "pandas", specifier = ">=2.2.0" },
+    { name = "pdfplumber", specifier = ">=0.11.0" },
+    { name = "pydantic", specifier = ">=2.9.0" },
+    { name = "pyinstaller", marker = "extra == 'dev'", specifier = ">=6.0.0" },
+    { name = "pymupdf", specifier = ">=1.24.0" },
+    { name = "pymupdf4llm", specifier = ">=0.0.10" },
+    { name = "pyside6", specifier = ">=6.7.0" },
+    { name = "pytesseract", specifier = ">=0.3.10" },
+    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0.0" },
+    { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.24.0" },
+    { name = "python-docx", specifier = ">=1.1.0" },
+    { name = "python-dotenv", specifier = ">=1.0.0" },
+    { name = "python-magic", specifier = ">=0.4.27" },
+    { name = "tiktoken", specifier = ">=0.7.0" },
+]
+provides-extras = ["ocr-paddle", "dev"]
+
+[package.metadata.requires-dev]
+dev = [{ name = "pytest", specifier = ">=9.0.3" }]
+
+[[package]]
 name = "et-xmlfile"
 version = "2.0.0"
 source = { registry = "https://pypi.org/simple" }
@@ -3489,72 +3555,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/9a/3f/f70e03f40ffc9a30d817eef7da1be72ee4956ba8d7255c399a01b135902a/websockets-16.0-pp311-pypy311_pp73-win_amd64.whl", hash = "sha256:a653aea902e0324b52f1613332ddf50b00c06fdaf7e92624fbf8c77c78fa5767", size = 178735, upload-time = "2026-01-10T09:23:42.259Z" },
     { url = "https://files.pythonhosted.org/packages/6f/28/258ebab549c2bf3e64d2b0217b973467394a9cea8c42f70418ca2c5d0d2e/websockets-16.0-py3-none-any.whl", hash = "sha256:1637db62fad1dc833276dded54215f2c7fa46912301a24bd94d45d46a011ceec", size = 171598, upload-time = "2026-01-10T09:23:45.395Z" },
 ]
-
-[[package]]
-name = "zemas-db-builder"
-version = "0.1.0"
-source = { editable = "." }
-dependencies = [
-    { name = "chromadb" },
-    { name = "httpx" },
-    { name = "langdetect" },
-    { name = "openpyxl" },
-    { name = "pandas" },
-    { name = "pdfplumber" },
-    { name = "pydantic" },
-    { name = "pymupdf" },
-    { name = "pymupdf4llm" },
-    { name = "pyside6" },
-    { name = "pytesseract" },
-    { name = "python-docx" },
-    { name = "python-dotenv" },
-    { name = "python-magic" },
-    { name = "tiktoken" },
-]
-
-[package.optional-dependencies]
-dev = [
-    { name = "pyinstaller" },
-    { name = "pytest" },
-    { name = "pytest-asyncio" },
-]
-ocr-paddle = [
-    { name = "paddleocr" },
-    { name = "paddlepaddle" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "pytest" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "chromadb", specifier = ">=0.5.0" },
-    { name = "httpx", specifier = ">=0.27.0" },
-    { name = "langdetect", specifier = ">=1.0.9" },
-    { name = "openpyxl", specifier = ">=3.1.0" },
-    { name = "paddleocr", marker = "extra == 'ocr-paddle'", specifier = ">=2.7.0" },
-    { name = "paddlepaddle", marker = "extra == 'ocr-paddle'", specifier = ">=2.6.0" },
-    { name = "pandas", specifier = ">=2.2.0" },
-    { name = "pdfplumber", specifier = ">=0.11.0" },
-    { name = "pydantic", specifier = ">=2.9.0" },
-    { name = "pyinstaller", marker = "extra == 'dev'", specifier = ">=6.0.0" },
-    { name = "pymupdf", specifier = ">=1.24.0" },
-    { name = "pymupdf4llm", specifier = ">=0.0.10" },
-    { name = "pyside6", specifier = ">=6.7.0" },
-    { name = "pytesseract", specifier = ">=0.3.10" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0.0" },
-    { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.24.0" },
-    { name = "python-docx", specifier = ">=1.1.0" },
-    { name = "python-dotenv", specifier = ">=1.0.0" },
-    { name = "python-magic", specifier = ">=0.4.27" },
-    { name = "tiktoken", specifier = ">=0.7.0" },
-]
-provides-extras = ["ocr-paddle", "dev"]
-
-[package.metadata.requires-dev]
-dev = [{ name = "pytest", specifier = ">=9.0.3" }]
 
 [[package]]
 name = "zipp"

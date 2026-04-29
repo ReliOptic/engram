@@ -23,6 +23,7 @@ from PySide6.QtWidgets import (
 from db_builder.config import DBBuilderConfig
 from db_builder.database import DatabaseManager
 from db_builder.store.chromadb_writer import ChromaDBWriter
+from db_builder.ui.theme import C_TEXT, C_TEXT_MUTED, S_EXPORT
 
 
 class OutputPanel(QWidget):
@@ -48,25 +49,21 @@ class OutputPanel(QWidget):
         self.label_chromadb_path.setTextInteractionFlags(
             Qt.TextInteractionFlag.TextSelectableByMouse
         )
-        self.label_chromadb_path.setStyleSheet("font-family: monospace; color: #333;")
+        self.label_chromadb_path.setStyleSheet(f"font-family: monospace; color: {C_TEXT};")
         loc_layout.addRow("ChromaDB directory:", self.label_chromadb_path)
 
         self.label_db_path = QLabel(str(self.config.db_path))
         self.label_db_path.setTextInteractionFlags(
             Qt.TextInteractionFlag.TextSelectableByMouse
         )
-        self.label_db_path.setStyleSheet("font-family: monospace; color: #888;")
+        self.label_db_path.setStyleSheet(f"font-family: monospace; color: {C_TEXT_MUTED};")
         loc_layout.addRow("State database:", self.label_db_path)
 
         btn_row = QHBoxLayout()
         self.btn_open_output = QPushButton("Open Output Folder")
         self.btn_open_output.clicked.connect(self._on_open_output)
         self.btn_export = QPushButton("Export ChromaDB to...")
-        self.btn_export.setStyleSheet(
-            "QPushButton{background:#FF9800;color:white;font-weight:bold;"
-            "border-radius:4px;padding:6px 16px}"
-            "QPushButton:hover{background:#F57C00}"
-        )
+        self.btn_export.setStyleSheet(S_EXPORT)
         self.btn_export.clicked.connect(self._on_export)
         btn_row.addWidget(self.btn_open_output)
         btn_row.addWidget(self.btn_export)
@@ -123,10 +120,10 @@ class OutputPanel(QWidget):
         name_lbl = QLabel(f"<b>{collection_name}</b>")
         name_lbl.setMinimumWidth(140)
         desc_lbl = QLabel(description)
-        desc_lbl.setStyleSheet("color: #888;")
+        desc_lbl.setStyleSheet(f"color: {C_TEXT_MUTED};")
         count_lbl = QLabel("0 chunks")
         count_lbl.setMinimumWidth(100)
-        count_lbl.setStyleSheet("font-weight: bold; color: #333;")
+        count_lbl.setStyleSheet(f"font-weight: 700; color: {C_TEXT};")
         count_lbl.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
 
         row.addWidget(name_lbl)

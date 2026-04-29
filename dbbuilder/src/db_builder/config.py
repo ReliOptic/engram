@@ -55,6 +55,8 @@ class EmbeddingConfig:
 
     @property
     def api_key(self) -> str:
+        if not self.api_key_env:
+            return ""  # local/Ollama — no key required
         key = os.getenv(self.api_key_env, "")
         if not key:
             raise ValueError(
@@ -130,6 +132,60 @@ def _extract_embedding_config(models: dict) -> EmbeddingConfig:
     )
 
 
+PROVIDER_PRESETS: dict[str, dict] = {
+    "google-ai-studio": {
+        "label": "Google AI Studio",
+        "base_url": "https://generativelanguage.googleapis.com/v1beta/openai",
+        "model": "text-embedding-004",
+        "api_key_env": "GEMINI_API_KEY",
+        "api_key_label": "Gemini API Key",
+        "api_key_placeholder": "AIza...",
+        "dimensions": 768,
+        "cost_per_million_input": 0.0,
+    },
+    "openrouter": {
+        "label": "OpenRouter",
+        "base_url": "https://openrouter.ai/api/v1",
+        "model": "openai/text-embedding-3-small",
+        "api_key_env": "OPENROUTER_API_KEY",
+        "api_key_label": "OpenRouter API Key",
+        "api_key_placeholder": "sk-or-v1-...",
+        "dimensions": 1536,
+        "cost_per_million_input": 0.02,
+    },
+    "openai": {
+        "label": "OpenAI",
+        "base_url": "https://api.openai.com/v1",
+        "model": "text-embedding-3-small",
+        "api_key_env": "OPENAI_API_KEY",
+        "api_key_label": "OpenAI API Key",
+        "api_key_placeholder": "sk-...",
+        "dimensions": 1536,
+        "cost_per_million_input": 0.02,
+    },
+    "ollama": {
+        "label": "Ollama (Local)",
+        "base_url": "http://localhost:11434/v1",
+        "model": "nomic-embed-text",
+        "api_key_env": "",
+        "api_key_label": "API Key (not required)",
+        "api_key_placeholder": "(not required for local)",
+        "dimensions": 768,
+        "cost_per_million_input": 0.0,
+    },
+    "custom": {
+        "label": "Custom / Self-hosted",
+        "base_url": "",
+        "model": "",
+        "api_key_env": "EMBEDDING_API_KEY",
+        "api_key_label": "API Key",
+        "api_key_placeholder": "",
+        "dimensions": 1536,
+        "cost_per_million_input": 0.0,
+    },
+}
+
+
 def _default_embedding_config() -> EmbeddingConfig:
     """Fallback embedding config when models.json is not available."""
     return EmbeddingConfig(
@@ -190,6 +246,20 @@ def load_config() -> DBBuilderConfig:
             )
         embedding = _default_embedding_config()
         engram_config_dir = local_config
+
+    # Override embedding config from DB_BUILDER_PROVIDER env var (set by settings dialog)
+    provider_key = os.getenv("DB_BUILDER_PROVIDER", "").strip()
+    if provider_key and provider_key in PROVIDER_PRESETS:
+        preset = PROVIDER_PRESETS[provider_key]
+        base_url_override = os.getenv("DB_BUILDER_BASE_URL", preset["base_url"])
+        model_override = os.getenv("DB_BUILDER_MODEL", preset["model"])
+        embedding = EmbeddingConfig(
+            model=model_override,
+            provider=provider_key,
+            base_url=base_url_override,
+            api_key_env=preset["api_key_env"],
+            cost_per_million_input=preset["cost_per_million_input"],
+        )
 
     raw_data_dir = Path(os.getenv("DB_BUILDER_RAW_DIR", str(root / "data" / "raw")))
     raw_data_dir.mkdir(parents=True, exist_ok=True)

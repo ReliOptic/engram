@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (
 
 from db_builder.config import DBBuilderConfig
 from db_builder.database import DatabaseManager
+from db_builder.ui.theme import C_TEXT_MUTED, C_TEXT_FAINT
 
 
 class PlaceholderTab(QWidget):
@@ -27,11 +28,13 @@ class PlaceholderTab(QWidget):
         layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         title_label = QLabel(title)
-        title_label.setStyleSheet("font-size: 18px; font-weight: bold; color: #666;")
+        title_label.setStyleSheet(
+            f"font-size:17px;font-weight:700;color:{C_TEXT_MUTED};"
+        )
         title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         desc_label = QLabel(description)
-        desc_label.setStyleSheet("font-size: 13px; color: #999;")
+        desc_label.setStyleSheet(f"font-size:12px;color:{C_TEXT_FAINT};")
         desc_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         layout.addWidget(title_label)
@@ -122,9 +125,9 @@ class MainWindow(QMainWindow):
         self.setStatusBar(status)
 
         left = QLabel(f"DB: {self._db_path}")
-        left.setStyleSheet("color: #888; font-size: 11px;")
+        left.setStyleSheet(f"color:{C_TEXT_MUTED};font-size:11px;")
         right = QLabel(f"ChromaDB: {self._chromadb_dir}")
-        right.setStyleSheet("color: #888; font-size: 11px;")
+        right.setStyleSheet(f"color:{C_TEXT_MUTED};font-size:11px;")
 
         status.addWidget(left, 1)
         status.addPermanentWidget(right)

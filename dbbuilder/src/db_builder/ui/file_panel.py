@@ -29,18 +29,17 @@ from PySide6.QtWidgets import (
 
 from db_builder.database import DatabaseManager
 from db_builder.pipeline import FileScanner
+from db_builder.ui.theme import (
+    STATUS_DISPLAY, LOG_QSS, S_PRIMARY,
+    C_TEXT_MUTED, C_TEXT_2, C_TEXT_FAINT,
+    C_HAIR, C_BORDER, C_APP, C_SUNKEN, C_PANEL,
+    C_INFO_SOFT, C_INFO_TEXT, C_BRAND,
+    C_SUCCESS_SOFT, C_SUCCESS_TEXT, C_SUCCESS_EDGE,
+    C_WARNING_SOFT, C_WARNING_TEXT, C_WARNING_EDGE,
+    C_ERROR_SOFT, C_ERROR_TEXT, C_ERROR_EDGE,
+)
 
 logger = logging.getLogger(__name__)
-
-STATUS_DISPLAY = {
-    "pending":   ("Pending",    "#FF9800"),
-    "parsing":   ("Parsing...", "#2196F3"),
-    "parsed":    ("Parsed",     "#42A5F5"),
-    "chunked":   ("Chunked",    "#66BB6A"),
-    "embedded":  ("Embedded",   "#26A69A"),
-    "completed": ("Done",       "#4CAF50"),
-    "failed":    ("Failed",     "#F44336"),
-}
 
 TYPE_DISPLAY = {
     "manual": "PDF Manual", "weekly": "Excel Weekly", "sop": "Word SOP",
@@ -150,8 +149,8 @@ class NotificationBanner(QFrame):
         self.btn_dismiss = QPushButton("x")
         self.btn_dismiss.setFixedSize(24, 24)
         self.btn_dismiss.setStyleSheet(
-            "QPushButton{border:none;color:#666;font-weight:bold;font-size:14px}"
-            "QPushButton:hover{color:#333}"
+            f"QPushButton{{border:none;color:{C_TEXT_MUTED};font-weight:700;font-size:14px}}"
+            f"QPushButton:hover{{color:{C_TEXT_2}}}"
         )
         self.btn_dismiss.clicked.connect(self.hide)
 
@@ -161,17 +160,19 @@ class NotificationBanner(QFrame):
         layout.addWidget(self.btn_dismiss)
 
     def show_info(self, msg: str, button_text: str = ""):
-        self.setStyleSheet("QFrame{background:#E3F2FD;border:1px solid #90CAF9;border-radius:4px}")
+        self.setStyleSheet(
+            f"QFrame{{background:{C_INFO_SOFT};border:1px solid {C_BRAND};border-radius:6px}}"
+        )
         self.icon_label.setText("i")
-        self.icon_label.setStyleSheet("color:#1976D2;font-weight:bold;font-size:16px")
+        self.icon_label.setStyleSheet(f"color:{C_BRAND};font-weight:700;font-size:15px;")
         self.msg_label.setText(msg)
-        self.msg_label.setStyleSheet("color:#1565C0;font-size:12px;font-weight:bold")
+        self.msg_label.setStyleSheet(f"color:{C_INFO_TEXT};font-size:12px;font-weight:600;")
         if button_text:
             self.btn.setText(button_text)
             self.btn.setStyleSheet(
-                "QPushButton{background:#1976D2;color:white;border-radius:4px;"
-                "padding:2px 14px;font-weight:bold;font-size:11px}"
-                "QPushButton:hover{background:#1565C0}"
+                f"QPushButton{{background:{C_BRAND};color:white;border-radius:6px;"
+                f"padding:2px 14px;font-weight:700;font-size:11px;border:none}}"
+                f"QPushButton:hover{{background:#1A2BA8}}"
             )
             self.btn.show()
         else:
@@ -179,20 +180,24 @@ class NotificationBanner(QFrame):
         self.show()
 
     def show_success(self, msg: str):
-        self.setStyleSheet("QFrame{background:#E8F5E9;border:1px solid #A5D6A7;border-radius:4px}")
-        self.icon_label.setText("v")
-        self.icon_label.setStyleSheet("color:#2E7D32;font-weight:bold;font-size:16px")
+        self.setStyleSheet(
+            f"QFrame{{background:{C_SUCCESS_SOFT};border:1px solid {C_SUCCESS_EDGE};border-radius:6px}}"
+        )
+        self.icon_label.setText("✓")
+        self.icon_label.setStyleSheet(f"color:{C_SUCCESS_TEXT};font-weight:700;font-size:14px;")
         self.msg_label.setText(msg)
-        self.msg_label.setStyleSheet("color:#2E7D32;font-size:12px;font-weight:bold")
+        self.msg_label.setStyleSheet(f"color:{C_SUCCESS_TEXT};font-size:12px;font-weight:600;")
         self.btn.hide()
         self.show()
 
     def show_progress(self, msg: str):
-        self.setStyleSheet("QFrame{background:#FFF3E0;border:1px solid #FFE0B2;border-radius:4px}")
-        self.icon_label.setText("...")
-        self.icon_label.setStyleSheet("color:#E65100;font-weight:bold;font-size:14px")
+        self.setStyleSheet(
+            f"QFrame{{background:{C_WARNING_SOFT};border:1px solid {C_WARNING_EDGE};border-radius:6px}}"
+        )
+        self.icon_label.setText("…")
+        self.icon_label.setStyleSheet(f"color:{C_WARNING_TEXT};font-weight:700;font-size:14px;")
         self.msg_label.setText(msg)
-        self.msg_label.setStyleSheet("color:#E65100;font-size:12px;font-weight:bold")
+        self.msg_label.setStyleSheet(f"color:{C_WARNING_TEXT};font-size:12px;font-weight:600;")
         self.btn.hide()
         self.btn_dismiss.hide()
         self.show()
@@ -230,11 +235,7 @@ class FilePanel(QWidget):
 
         self.btn_add_folder = QPushButton("Add Folder...")
         self.btn_add_folder.setMinimumHeight(34)
-        self.btn_add_folder.setStyleSheet(
-            "QPushButton{background:#2196F3;color:white;font-weight:bold;"
-            "border-radius:4px;padding:4px 16px;font-size:12px}"
-            "QPushButton:hover{background:#1976D2}"
-        )
+        self.btn_add_folder.setStyleSheet(S_PRIMARY)
         self.btn_add_folder.clicked.connect(self._on_add_folder)
 
         self.btn_add_files = QPushButton("Add Files...")
@@ -246,7 +247,7 @@ class FilePanel(QWidget):
         self.btn_refresh.clicked.connect(self._on_refresh)
 
         self.label_summary = QLabel()
-        self.label_summary.setStyleSheet("color:#666;font-size:12px;")
+        self.label_summary.setStyleSheet(f"color:{C_TEXT_MUTED};font-size:12px;")
 
         toolbar.addWidget(self.btn_add_folder)
         toolbar.addWidget(self.btn_add_files)
@@ -263,7 +264,7 @@ class FilePanel(QWidget):
         pf_layout.setSpacing(2)
 
         self.progress_label = QLabel("Importing...")
-        self.progress_label.setStyleSheet("font-size:11px;color:#555;")
+        self.progress_label.setStyleSheet(f"font-size:11px;color:{C_TEXT_2};")
         self.progress_bar = QProgressBar()
         self.progress_bar.setMaximumHeight(18)
         self.progress_bar.setTextVisible(True)
@@ -289,20 +290,14 @@ class FilePanel(QWidget):
         self.table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
         self.table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.table.customContextMenuRequested.connect(self._on_context_menu)
-        self.table.setStyleSheet(
-            "QTableWidget{gridline-color:#e0e0e0;font-size:12px}"
-            "QTableWidget::item{padding:4px}"
-            "QHeaderView::section{background:#f5f5f5;padding:6px;border:1px solid #ddd;font-weight:bold}"
-        )
+        # Table styling comes from GLOBAL_QSS; only override item padding
+        self.table.setStyleSheet("QTableWidget::item{padding:4px 6px;}")
         splitter.addWidget(self.table)
 
         self.log_text = QTextEdit()
         self.log_text.setReadOnly(True)
         self.log_text.setMaximumHeight(140)
-        self.log_text.setStyleSheet(
-            "QTextEdit{background:#1e1e1e;color:#d4d4d4;"
-            "font-family:'Consolas','Courier New',monospace;font-size:11px}"
-        )
+        self.log_text.setStyleSheet(LOG_QSS)
         splitter.addWidget(self.log_text)
         splitter.setSizes([500, 140])
         layout.addWidget(splitter)
@@ -623,7 +618,8 @@ class FilePanel(QWidget):
             quality = f.get("avg_quality")
             if quality:
                 item_q = QTableWidgetItem(f"{quality:.2f}")
-                c = "#4CAF50" if quality >= 0.7 else "#FF9800" if quality >= 0.5 else "#F44336"
+                from db_builder.ui.theme import C_SUCCESS_TEXT, C_WARNING, C_ERROR
+                c = C_SUCCESS_TEXT if quality >= 0.7 else C_WARNING if quality >= 0.5 else C_ERROR
                 item_q.setForeground(QColor(c))
             else:
                 item_q = QTableWidgetItem("-")
