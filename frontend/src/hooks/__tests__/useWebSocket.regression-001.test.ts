@@ -66,8 +66,10 @@ describe('useWebSocket — StrictMode resilience', () => {
     expect(MockWebSocket.instances.length).toBe(countAfterMount)
   })
 
-  it('reconnects after real server disconnect', () => {
+  it('reconnects after real server disconnect', async () => {
     renderHook(() => useWebSocket('ws://test'))
+    // useWebSocket defers connect via queueMicrotask; flush it before accessing instances
+    await act(async () => {})
 
     const activeWs = MockWebSocket.instances[MockWebSocket.instances.length - 1]
     activeWs.simulateOpen()

@@ -242,7 +242,7 @@ const styles: Record<string, React.CSSProperties> = {
     color: 'var(--text-primary)',
     fontSize: '13px',
     fontWeight: 600,
-    fontFamily: 'var(--font-family)',
+    fontFamily: 'var(--font-sans)',
     cursor: 'pointer',
     transition: 'background 0.15s',
   },

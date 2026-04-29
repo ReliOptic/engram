@@ -238,6 +238,15 @@ export function ChatPage() {
     setSeedText(text);
   }, []);
 
+  const caseInfo = useMemo(() => {
+    if (!currentSessionId || messages.length === 0) return null;
+    const firstUser = messages.find(m => m.agent === 'user');
+    const contributions = messages.filter(
+      m => m.agent !== 'user' && m.contributionType !== 'PASS'
+    ).length;
+    return { shortId: currentSessionId.slice(0, 8).toUpperCase(), silo: firstUser?.silo, contributions };
+  }, [currentSessionId, messages]);
+
   // Keyboard shortcuts
   useKeyboardShortcuts({
     onNewChat: handleNewChat,
@@ -269,6 +278,46 @@ export function ChatPage() {
       }
       center={
         <>
+          {caseInfo && (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 10,
+              padding: '5px 16px',
+              background: 'var(--surface-sunken)',
+              borderBottom: '1px solid var(--border-hairline)',
+              flexShrink: 0,
+            }}>
+              <span style={{
+                fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700,
+                color: 'var(--brand-primary)', letterSpacing: '0.06em',
+              }}>CASE #{caseInfo.shortId}</span>
+              {caseInfo.silo?.account && (
+                <span style={{
+                  fontFamily: 'var(--font-mono)', fontSize: 11,
+                  color: 'var(--text-muted)',
+                }}>{caseInfo.silo.account}/{caseInfo.silo.tool}/{caseInfo.silo.component}</span>
+              )}
+              <span style={{
+                fontSize: 11, color: 'var(--text-muted)',
+                background: 'var(--surface-panel)',
+                border: '1px solid var(--border-hairline)',
+                borderRadius: 'var(--radius-pill)',
+                padding: '1px 7px',
+              }}>{caseInfo.contributions} contributions</span>
+              <button
+                onClick={handleNewChat}
+                style={{
+                  marginLeft: 'auto', fontSize: 11, fontWeight: 600,
+                  color: 'var(--text-muted)',
+                  display: 'inline-flex', alignItems: 'center', gap: 4,
+                  padding: '3px 8px',
+                  border: '1px solid var(--border-hairline)',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'var(--surface-panel)',
+                  cursor: 'pointer',
+                }}
+              >Close case</button>
+            </div>
+          )}
           <ChatTimeline messages={messages} isProcessing={isProcessing} terminatedReason={terminatedReason} sessionId={currentSessionId} onSourceBadgeClick={handleSourceBadgeClick} onSeedClick={handleSeedClick} />
           <ChatInput onSend={handleSend} disabled={isProcessing} isProcessing={isProcessing} onStop={handleStop} prefillText={seedText} />
         </>

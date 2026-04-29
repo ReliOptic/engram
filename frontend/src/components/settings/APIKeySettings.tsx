@@ -193,7 +193,7 @@ const styles: Record<string, React.CSSProperties> = {
     color: 'var(--text-primary)',
     fontSize: '12px',
     fontWeight: 600,
-    fontFamily: 'var(--font-family)',
+    fontFamily: 'var(--font-sans)',
     cursor: 'pointer',
     flexShrink: 0,
     transition: 'background 0.15s',

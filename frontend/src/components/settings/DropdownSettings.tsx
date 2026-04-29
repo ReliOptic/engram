@@ -200,7 +200,7 @@ const styles: Record<string, React.CSSProperties> = {
     color: 'var(--text-on-dark)',
     fontSize: '13px',
     fontWeight: 600,
-    fontFamily: 'var(--font-family)',
+    fontFamily: 'var(--font-sans)',
     cursor: 'pointer',
     transition: 'opacity 0.15s',
   },
